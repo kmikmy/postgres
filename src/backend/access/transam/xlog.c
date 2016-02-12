@@ -651,9 +651,13 @@ typedef struct XLogCtlData
 } XLogCtlData;
 
 static XLogCtlData *XLogCtl = NULL;
+/* each xlog slot is managed by a XlogCtl */
+static XLogCtlData *XLogCtls;
 
 /* a private copy of XLogCtl->Insert.WALInsertLocks, for convenience */
 static WALInsertLockPadded *WALInsertLocks = NULL;
+/* a private copy of XLogCtls[n]->Insert.WALInsertLocks, for convenience */
+static WALInsertLockPadded *WALInsertSlotLocks[MAX_XLOG_SLOTS] = { NULL };
 
 /*
  * We maintain an image of pg_control in shared memory.
@@ -4636,15 +4640,23 @@ XLOGShmemSize(void)
 
 	/* XLogCtl */
 	size = sizeof(XLogCtlData);
+	/* XLogCtl for P-WAL */
+	size = add_size(size, mul_size(sizeof(XLogCtlData), XLOGslots));
 
 	/* WAL insertion locks, plus alignment */
 	size = add_size(size, mul_size(sizeof(WALInsertLockPadded), NUM_XLOGINSERT_LOCKS + 1));
+	/* WAL insertion locks for P-WAL */
+	size = add_size(size, mul_size(mul_size(sizeof(WALInsertLockPadded), NUM_XLOGINSERT_LOCKS), XLOGslots));
 	/* xlblocks array */
 	size = add_size(size, mul_size(sizeof(XLogRecPtr), XLOGbuffers));
+	/* xlblocks array for P-WAL */
+	size = add_size(size, mul_size(mul_size(sizeof(XLogRecPtr), XLOGbuffers), XLOGslots));
 	/* extra alignment padding for XLOG I/O buffers */
 	size = add_size(size, XLOG_BLCKSZ);
 	/* and the buffers themselves */
 	size = add_size(size, mul_size(XLOG_BLCKSZ, XLOGbuffers));
+	/* and the buffers themselves for P-WAL */
+	size = add_size(size, mul_size(mul_size(XLOG_BLCKSZ, XLOGbuffers), XLOGslots));
 
 	/*
 	 * Note: we don't count ControlFileData, it comes out of the "slop factor"
@@ -4655,13 +4667,15 @@ XLOGShmemSize(void)
 	return size;
 }
 
+#define TO_STRING_WITH_INT(str, i) (#str#i)
+
 void
 XLOGShmemInit(void)
 {
 	bool		foundCFile,
 				foundXLog;
 	char	   *allocptr;
-	int			i;
+	int			i, j;
 
 #ifdef WAL_DEBUG
 
@@ -4698,17 +4712,26 @@ XLOGShmemInit(void)
 		return;
 	}
 	memset(XLogCtl, 0, sizeof(XLogCtlData));
+	allocptr = ((char *) XLogCtl) + sizeof(XLogCtlData);
+
+	XLogCtls = (XLogCtlData *) allocptr;
+	allocptr += sizeof(XLogCtlData) * XLOGslots;
 
 	/*
 	 * Since XLogCtlData contains XLogRecPtr fields, its sizeof should be a
 	 * multiple of the alignment for same, so no extra alignment padding is
 	 * needed here.
 	 */
-	allocptr = ((char *) XLogCtl) + sizeof(XLogCtlData);
 	XLogCtl->xlblocks = (XLogRecPtr *) allocptr;
 	memset(XLogCtl->xlblocks, 0, sizeof(XLogRecPtr) * XLOGbuffers);
 	allocptr += sizeof(XLogRecPtr) * XLOGbuffers;
 
+	for(i = 0; i < XLOGslots; i++)
+	{
+		XLogCtls[i].xlblocks = (XLogRecPtr *) allocptr;
+		memset(XLogCtls[i].xlblocks, 0, sizeof(XLogRecPtr) * XLOGbuffers);
+		allocptr += sizeof(XLogRecPtr) * XLOGbuffers;
+	}
 
 	/* WAL insertion locks. Ensure they're aligned to the full padded size */
 	allocptr += sizeof(WALInsertLockPadded) -
@@ -4731,6 +4754,29 @@ XLOGShmemInit(void)
 		WALInsertLocks[i].l.insertingAt = InvalidXLogRecPtr;
 	}
 
+	for(i = 0; i < XLOGslots; i++)
+	{
+		WALInsertSlotLocks[i] = XLogCtls[i].Insert.WALInsertLocks =
+		(WALInsertLockPadded *) allocptr;
+		allocptr += sizeof(WALInsertLockPadded) * NUM_XLOGINSERT_LOCKS;
+
+		XLogCtls[i].Insert.WALInsertLockTrancheId = LWLockNewTrancheId();
+
+		XLogCtls[i].Insert.WALInsertLockTranche.name = TO_STRING_WITH_INT(WALInsertSlotLocks, i);
+		XLogCtls[i].Insert.WALInsertLockTranche.array_base = WALInsertSlotLocks[i];
+		XLogCtls[i].Insert.WALInsertLockTranche.array_stride = sizeof(WALInsertLockPadded);
+
+		LWLockRegisterTranche(XLogCtls[i].Insert.WALInsertLockTrancheId,
+							  &XLogCtls[i].Insert.WALInsertLockTranche);
+		for (j = 0; j < NUM_XLOGINSERT_LOCKS; j++)
+		{
+			LWLockInitialize(&WALInsertSlotLocks[i][j].l.lock,
+							 XLogCtls[i].Insert.WALInsertLockTrancheId);
+			WALInsertSlotLocks[i][j].l.insertingAt = InvalidXLogRecPtr;
+		}
+	}
+
+
 	/*
 	 * Align the start of the page buffers to a full xlog block size boundary.
 	 * This simplifies some calculations in XLOG insertion. It is also
@@ -4739,6 +4785,14 @@ XLOGShmemInit(void)
 	allocptr = (char *) TYPEALIGN(XLOG_BLCKSZ, allocptr);
 	XLogCtl->pages = allocptr;
 	memset(XLogCtl->pages, 0, (Size) XLOG_BLCKSZ * XLOGbuffers);
+    allocptr += (Size) XLOG_BLCKSZ * XLOGbuffers;
+
+	for(i = 0; i < XLOGslots; i++)
+	{
+		XLogCtls[i].pages = allocptr;
+		memset(XLogCtls[i].pages, 0, (Size) XLOG_BLCKSZ * XLOGbuffers);
+		allocptr += (Size) XLOG_BLCKSZ * XLOGbuffers;
+	}
 
 	/*
 	 * Do basic initialization of XLogCtl shared data. (StartupXLOG will fill
