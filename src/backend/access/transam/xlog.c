@@ -86,6 +86,7 @@ int			max_wal_size = 64;	/* 1 GB */
 int			min_wal_size = 5;	/* 80 MB */
 int			wal_keep_segments = 0;
 int			XLOGbuffers = -1;
+int			XLOGslots = -1;
 int			XLogArchiveTimeout = 0;
 int			XLogArchiveMode = ARCHIVE_MODE_OFF;
 char	   *XLogArchiveCommand = NULL;
@@ -4537,6 +4538,20 @@ XLOGChooseNumBuffers(void)
 }
 
 /*
+ * Auto-tune the number of XLOG slots.
+ */
+static int
+XLOGChooseNumSlots(void)
+{
+	int			xslots;
+
+	xslots = sysconf(_SC_NPROCESSORS_CONF);
+	if (xslots < 0)
+		xslots = 1;
+	return xslots;
+}
+
+/*
  * GUC check_hook for wal_buffers
  */
 bool
@@ -4572,6 +4587,23 @@ check_wal_buffers(int *newval, void **extra, GucSource source)
 }
 
 /*
+ * GUC check_hook for wal_slots
+ */
+bool
+check_wal_slots(int *newval, void **extra, GucSource source)
+{
+	/*
+	 * -1 indicates a request for auto-tune.
+	 */
+	if (*newval == -1)
+	{
+		*newval = XLOGChooseNumSlots();
+	}
+
+	return true;
+}
+
+/*
  * Initialization of shared memory for XLOG
  */
 Size
@@ -4593,6 +4625,14 @@ XLOGShmemSize(void)
 		SetConfigOption("wal_buffers", buf, PGC_POSTMASTER, PGC_S_OVERRIDE);
 	}
 	Assert(XLOGbuffers > 0);
+
+	if (XLOGslots == -1)
+	{
+		char		buf[32];
+
+		snprintf(buf, sizeof(buf), "%d", XLOGChooseNumSlots());
+		SetConfigOption("wal_slots", buf, PGC_POSTMASTER, PGC_S_OVERRIDE);
+	}
 
 	/* XLogCtl */
 	size = sizeof(XLogCtlData);

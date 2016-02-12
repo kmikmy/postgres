@@ -2221,6 +2221,17 @@ static struct config_int ConfigureNamesInt[] =
 	},
 
 	{
+		{"wal_slots", PGC_POSTMASTER, WAL_SETTINGS,
+			gettext_noop("Sets the number of wal-slots in shared memory for P-WAL."),
+			NULL,
+			GUC_UNIT_XSLOTS
+		},
+		&XLOGslots,
+		-1, -1, 48,
+		check_wal_slots, NULL, NULL
+	},
+
+	{
 		{"wal_writer_delay", PGC_SIGHUP, WAL_SETTINGS,
 			gettext_noop("WAL writer sleep time between WAL flushes."),
 			NULL,

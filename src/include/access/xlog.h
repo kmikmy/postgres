@@ -96,6 +96,7 @@ extern int	min_wal_size;
 extern int	max_wal_size;
 extern int	wal_keep_segments;
 extern int	XLOGbuffers;
+extern int	XLOGslots;
 extern int	XLogArchiveTimeout;
 extern int	wal_retrieve_retry_interval;
 extern char *XLogArchiveCommand;

@@ -219,6 +219,7 @@ typedef enum
 #define GUC_UNIT_BLOCKS			0x2000	/* value is in blocks */
 #define GUC_UNIT_XBLOCKS		0x3000	/* value is in xlog blocks */
 #define GUC_UNIT_XSEGS			0x4000	/* value is in xlog segments */
+#define GUC_UNIT_XSLOTS			0x5000	/* value is in xlog slots */
 #define GUC_UNIT_MEMORY			0xF000	/* mask for KB, BLOCKS, XBLOCKS */
 
 #define GUC_UNIT_MS			   0x10000	/* value is in milliseconds */
@@ -430,6 +431,7 @@ extern void assign_search_path(const char *newval, void *extra);
 
 /* in access/transam/xlog.c */
 extern bool check_wal_buffers(int *newval, void **extra, GucSource source);
+extern bool check_wal_slots(int *newval, void **extra, GucSource source);
 extern void assign_xlog_sync_method(int new_sync_method, void *extra);
 
 #endif   /* GUC_H */
