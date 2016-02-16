@@ -4908,13 +4908,15 @@ BootStrapXLOG(void)
 	record = (XLogRecord *) recptr;
 	record->xl_prev = 0;
 	record->xl_xid = InvalidTransactionId;
-	record->xl_tot_len = SizeOfXLogRecord + SizeOfXLogRecordDataHeaderShort + sizeof(checkPoint);
+	record->xl_tot_len = SizeOfXLogRecord + SizeOfXLogRecordDataHeaderLong + sizeof(checkPoint);
 	record->xl_info = XLOG_CHECKPOINT_SHUTDOWN;
 	record->xl_rmid = RM_XLOG_ID;
 	recptr += SizeOfXLogRecord;
-	/* fill the XLogRecordDataHeaderShort struct */
-	*(recptr++) = XLR_BLOCK_ID_DATA_SHORT;
-	*(recptr++) = sizeof(checkPoint);
+	/* fill the XLogRecordDataHeaderLong struct */
+	*(recptr++) = XLR_BLOCK_ID_DATA_LONG;
+	*(uint32 *)(recptr) = sizeof(checkPoint);
+	recptr += sizeof(uint32);
+
 	memcpy(recptr, &checkPoint, sizeof(checkPoint));
 	recptr += sizeof(checkPoint);
 	Assert(recptr - (char *) record == record->xl_tot_len);
@@ -7844,7 +7846,7 @@ ReadCheckpointRecord(XLogReaderState *xlogreader, XLogRecPtr RecPtr,
 		}
 		return NULL;
 	}
-	if (record->xl_tot_len != SizeOfXLogRecord + SizeOfXLogRecordDataHeaderShort + sizeof(CheckPoint))
+	if (record->xl_tot_len != SizeOfXLogRecord + SizeOfXLogRecordDataHeaderLong + sizeof(CheckPoint))
 	{
 		switch (whichChkpt)
 		{

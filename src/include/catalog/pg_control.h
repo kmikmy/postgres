@@ -16,12 +16,13 @@
 #define PG_CONTROL_H
 
 #include "access/xlogdefs.h"
+#include "access/xlog_internal.h"
 #include "pgtime.h"				/* for pg_time_t */
 #include "port/pg_crc32c.h"
 
 
 /* Version identifier for this pg_control format */
-#define PG_CONTROL_VERSION	942
+#define PG_CONTROL_VERSION	943
 
 /*
  * Body of CheckPoint XLOG records.  This is declared here because we keep
@@ -32,6 +33,10 @@ typedef struct CheckPoint
 {
 	XLogRecPtr	redo;			/* next RecPtr available when we began to
 								 * create CheckPoint (i.e. REDO start point) */
+
+	/* next available RecPtr of each buffer when we began to create CheckPoint*/
+	XLogRecPtr	redoPtrs[MAX_XLOG_SLOTS];
+
 	TimeLineID	ThisTimeLineID; /* current TLI */
 	TimeLineID	PrevTimeLineID; /* previous TLI, if this record begins a new
 								 * timeline (equals ThisTimeLineID otherwise) */

@@ -125,6 +125,9 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 #define XRecOffIsValid(xlrp) \
 		((xlrp) % XLOG_BLCKSZ >= SizeOfXLogShortPHD)
 
+/* for P-WAL */
+#define MAX_XLOG_SLOTS 48
+
 /*
  * The XLog directory and control file (relative to $PGDATA)
  */
