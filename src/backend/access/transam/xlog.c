@@ -4808,6 +4808,19 @@ XLOGShmemInit(void)
 	SpinLockInit(&XLogCtl->ulsn_lck);
 	InitSharedLatch(&XLogCtl->recoveryWakeupLatch);
 
+	for(i = 0; i < XLOGslots; i++)
+	{
+		XLogCtls[i].XLogCacheBlck = XLOGbuffers - 1;
+		XLogCtls[i].SharedRecoveryInProgress = true;
+		XLogCtls[i].SharedHotStandbyActive = false;
+		XLogCtls[i].WalWriterSleeping = false;
+
+		SpinLockInit(&XLogCtls[i].Insert.insertpos_lck);
+		SpinLockInit(&XLogCtls[i].info_lck);
+		SpinLockInit(&XLogCtls[i].ulsn_lck);
+		InitSharedLatch(&XLogCtls[i].recoveryWakeupLatch);
+	}
+
 	/*
 	 * If we are not in bootstrap mode, pg_control should already exist. Read
 	 * and validate it immediately (see comments in ReadControlFile() for the
