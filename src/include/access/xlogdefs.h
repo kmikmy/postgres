@@ -29,6 +29,12 @@ typedef uint64 XLogRecPtr;
 #define XLogRecPtrIsInvalid(r)	((r) == InvalidXLogRecPtr)
 
 /*
+ * XLogSlotNo - physical and logical log slot number.
+ */
+typedef uint32 XLogSlotNo;
+
+
+/*
  * XLogSegNo - physical log file sequence number.
  */
 typedef uint64 XLogSegNo;

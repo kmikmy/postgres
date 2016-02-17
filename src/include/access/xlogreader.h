@@ -101,6 +101,9 @@ struct XLogReaderState
 	 */
 	uint64		system_identifier;
 
+	/* which number of slot does the reader see. */
+	XLogSlotNo slotno;
+
 	/*
 	 * Opaque data for callbacks to use.  Not used by XLogReader.
 	 */

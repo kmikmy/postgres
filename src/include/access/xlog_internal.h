@@ -143,13 +143,14 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 /* Length of XLog file name */
 #define XLOG_FNAME_LEN     24
 
-#define XLogFileName(fname, tli, logSegNo)	\
-	snprintf(fname, MAXFNAMELEN, "%08X%08X%08X", tli,		\
+#define XLogFileName(fname, tli, logSlotNo, logSegNo)			\
+	snprintf(fname, MAXFNAMELEN, "%08X%08X%08X%08X", tli,		\
+			 (uint32) logSlotNo,									\
 			 (uint32) ((logSegNo) / XLogSegmentsPerXLogId), \
 			 (uint32) ((logSegNo) % XLogSegmentsPerXLogId))
 
-#define XLogFileNameById(fname, tli, log, seg)	\
-	snprintf(fname, MAXFNAMELEN, "%08X%08X%08X", tli, log, seg)
+#define XLogFileNameById(fname, tli, logSlotNo, log, seg)		\
+	 snprintf(fname, MAXFNAMELEN, "%08X%08X%08X%08X", tli, logSlotNo, log, seg)
 
 #define IsXLogFileName(fname) \
 	(strlen(fname) == XLOG_FNAME_LEN && \
@@ -165,16 +166,17 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 	 strspn(fname, "0123456789ABCDEF") == XLOG_FNAME_LEN &&		\
 	 strcmp((fname) + XLOG_FNAME_LEN, ".partial") == 0)
 
-#define XLogFromFileName(fname, tli, logSegNo)	\
+#define XLogFromFileName(fname, tli, logSlotNo, logSegNo)	\
 	do {												\
 		uint32 log;										\
 		uint32 seg;										\
-		sscanf(fname, "%08X%08X%08X", tli, &log, &seg); \
+		sscanf(fname, "%08X%08X%08X%08X", tli, logSlotNo, &log, &seg);	\
 		*logSegNo = (uint64) log * XLogSegmentsPerXLogId + seg; \
 	} while (0)
 
-#define XLogFilePath(path, tli, logSegNo)	\
-	snprintf(path, MAXPGPATH, XLOGDIR "/%08X%08X%08X", tli,				\
+#define XLogFilePath(path, tli, logSlotNo, logSegNo)						\
+	snprintf(path, MAXPGPATH, XLOGDIR "/%08X%08X%08X%08X", tli,				\
+			 (uint32) logSlotNo,											\
 			 (uint32) ((logSegNo) / XLogSegmentsPerXLogId),				\
 			 (uint32) ((logSegNo) % XLogSegmentsPerXLogId))
 
@@ -192,8 +194,9 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 #define StatusFilePath(path, xlog, suffix)	\
 	snprintf(path, MAXPGPATH, XLOGDIR "/archive_status/%s%s", xlog, suffix)
 
-#define BackupHistoryFileName(fname, tli, logSegNo, offset) \
-	snprintf(fname, MAXFNAMELEN, "%08X%08X%08X.%08X.backup", tli, \
+#define BackupHistoryFileName(fname, tli, logSlotNo, logSegNo, offset) \
+	snprintf(fname, MAXFNAMELEN, "%08X%08X%08X%08X.%08X.backup", tli, \
+			 (uint32) logSlotNo,										  \
 			 (uint32) ((logSegNo) / XLogSegmentsPerXLogId),		  \
 			 (uint32) ((logSegNo) % XLogSegmentsPerXLogId), offset)
 
@@ -202,8 +205,9 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 	 strspn(fname, "0123456789ABCDEF") == XLOG_FNAME_LEN && \
 	 strcmp((fname) + strlen(fname) - strlen(".backup"), ".backup") == 0)
 
-#define BackupHistoryFilePath(path, tli, logSegNo, offset)	\
-	snprintf(path, MAXPGPATH, XLOGDIR "/%08X%08X%08X.%08X.backup", tli, \
+#define BackupHistoryFilePath(path, tli, logSegNo, logSlotNo, offset)	\
+	snprintf(path, MAXPGPATH, XLOGDIR "/%08X%08X%08X%08X.%08X.backup", tli, \
+			 (uint32) logSlotNo,											\
 			 (uint32) ((logSegNo) / XLogSegmentsPerXLogId), \
 			 (uint32) ((logSegNo) % XLogSegmentsPerXLogId), offset)
 

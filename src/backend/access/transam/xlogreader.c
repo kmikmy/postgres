@@ -705,7 +705,7 @@ ValidXLogPageHeader(XLogReaderState *state, XLogRecPtr recptr,
 	{
 		char		fname[MAXFNAMELEN];
 
-		XLogFileName(fname, state->readPageTLI, segno);
+		XLogFileName(fname, state->readPageTLI, state->slotno, segno);
 
 		report_invalid_record(state,
 					"invalid magic number %04X in log segment %s, offset %u",
@@ -719,7 +719,7 @@ ValidXLogPageHeader(XLogReaderState *state, XLogRecPtr recptr,
 	{
 		char		fname[MAXFNAMELEN];
 
-		XLogFileName(fname, state->readPageTLI, segno);
+		XLogFileName(fname, state->readPageTLI, state->slotno, segno);
 
 		report_invalid_record(state,
 					   "invalid info bits %04X in log segment %s, offset %u",
@@ -769,7 +769,7 @@ ValidXLogPageHeader(XLogReaderState *state, XLogRecPtr recptr,
 	{
 		char		fname[MAXFNAMELEN];
 
-		XLogFileName(fname, state->readPageTLI, segno);
+		XLogFileName(fname, state->readPageTLI, state->slotno, segno);
 
 		/* hmm, first page of file doesn't have a long header? */
 		report_invalid_record(state,
@@ -784,7 +784,7 @@ ValidXLogPageHeader(XLogReaderState *state, XLogRecPtr recptr,
 	{
 		char		fname[MAXFNAMELEN];
 
-		XLogFileName(fname, state->readPageTLI, segno);
+		XLogFileName(fname, state->readPageTLI, state->slotno, segno);
 
 		report_invalid_record(state,
 					"unexpected pageaddr %X/%X in log segment %s, offset %u",
@@ -809,7 +809,7 @@ ValidXLogPageHeader(XLogReaderState *state, XLogRecPtr recptr,
 		{
 			char		fname[MAXFNAMELEN];
 
-			XLogFileName(fname, state->readPageTLI, segno);
+			XLogFileName(fname, state->readPageTLI, state->slotno, segno);
 
 			report_invalid_record(state,
 								  "out-of-sequence timeline ID %u (after %u) in log segment %s, offset %u",

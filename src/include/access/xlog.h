@@ -214,10 +214,10 @@ extern XLogRecPtr XLogInsertRecord(struct XLogRecData *rdata, XLogRecPtr fpw_lsn
 extern void XLogFlush(XLogRecPtr RecPtr);
 extern bool XLogBackgroundFlush(void);
 extern bool XLogNeedsFlush(XLogRecPtr RecPtr);
-extern int	XLogFileInit(XLogSegNo segno, bool *use_existent, bool use_lock);
-extern int	XLogFileOpen(XLogSegNo segno);
+extern int	XLogFileInit(XLogSlotNo slotno, XLogSegNo segno, bool *use_existent, bool use_lock);
+extern int	XLogFileOpen(XLogSlotNo slotno, XLogSegNo segno);
 
-extern void CheckXLogRemoved(XLogSegNo segno, TimeLineID tli);
+extern void CheckXLogRemoved(XLogSlotNo slotno, XLogSegNo segno, TimeLineID tli);
 extern XLogSegNo XLogGetLastRemovedSegno(void);
 extern void XLogSetAsyncXactLSN(XLogRecPtr record);
 extern void XLogSetReplicationSlotMinimumLSN(XLogRecPtr lsn);
@@ -226,7 +226,7 @@ extern void xlog_redo(XLogReaderState *record);
 extern void xlog_desc(StringInfo buf, XLogReaderState *record);
 extern const char *xlog_identify(uint8 info);
 
-extern void issue_xlog_fsync(int fd, XLogSegNo segno);
+extern void issue_xlog_fsync(int fd, XLogSlotNo slotno, XLogSegNo segno);
 
 extern bool RecoveryInProgress(void);
 extern bool HotStandbyActive(void);
@@ -240,7 +240,7 @@ extern bool RecoveryIsPaused(void);
 extern void SetRecoveryPause(bool recoveryPause);
 extern TimestampTz GetLatestXTime(void);
 extern TimestampTz GetCurrentChunkReplayStartTime(void);
-extern char *XLogFileNameP(TimeLineID tli, XLogSegNo segno);
+extern char *XLogFileNameP(TimeLineID tli, XLogSlotNo slotno, XLogSegNo segno);
 
 extern void UpdateControlFile(void);
 extern uint64 GetSystemIdentifier(void);
