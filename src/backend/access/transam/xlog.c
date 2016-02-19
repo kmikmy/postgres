@@ -717,7 +717,7 @@ static const char *xlogSourceNames[] = {"any", "archive", "pg_xlog", "stream"};
  * used to write the XLOG, and so will normally refer to the active segment.
  */
 static int	openLogFile = -1;
-static XLogSegNo openLogSlotNo = 0;
+static XLogSlotNo openLogSlotNo = -1;
 static XLogSegNo openLogSegNo = 0;
 static uint32 openLogOff = 0;
 
@@ -908,6 +908,11 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 							   rechdr->xl_info == XLOG_SWITCH);
 	XLogRecPtr	StartPos;
 	XLogRecPtr	EndPos;
+
+	if(openLogSlotNo == -1)
+	{
+		openLogSlotNo = getpid() % XLOGslots;
+	}
 
 	/* we assume that all of the record header is in the first chunk */
 	Assert(rdata->len >= SizeOfXLogRecord);
