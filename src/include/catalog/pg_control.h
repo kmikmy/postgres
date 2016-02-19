@@ -44,6 +44,7 @@ typedef struct CheckPoint
 	uint32		nextXidEpoch;	/* higher-order bits of nextXid */
 	TransactionId nextXid;		/* next free XID */
 	Oid			nextOid;		/* next free OID */
+	GSN			nextGSN;		/* next free GSN */
 	MultiXactId nextMulti;		/* next free MultiXactId */
 	MultiXactOffset nextMultiOffset;	/* next free MultiXact offset */
 	TransactionId oldestXid;	/* cluster-wide minimum datfrozenxid */

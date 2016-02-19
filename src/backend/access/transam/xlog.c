@@ -654,6 +654,9 @@ static XLogCtlData *XLogCtl = NULL;
 /* each xlog slot is managed by a XlogCtl */
 static XLogCtlData *XLogCtls;
 
+/* each gsn is assigned to each log. */
+static GSN *gsn = NULL;
+
 /* a private copy of XLogCtl->Insert.WALInsertLocks, for convenience */
 static WALInsertLockPadded *WALInsertLocks = NULL;
 /* a private copy of XLogCtls[n]->Insert.WALInsertLocks, for convenience */
@@ -4660,6 +4663,9 @@ XLOGShmemSize(void)
 	/* XLogCtl for P-WAL */
 	size = add_size(size, mul_size(sizeof(XLogCtlData), XLOGslots));
 
+	/* GSN */
+	size = sizeof(GSN);
+
 	/* WAL insertion locks, plus alignment */
 	size = add_size(size, mul_size(sizeof(WALInsertLockPadded), NUM_XLOGINSERT_LOCKS + 1));
 	/* WAL insertion locks for P-WAL */
@@ -4733,6 +4739,9 @@ XLOGShmemInit(void)
 
 	XLogCtls = (XLogCtlData *) allocptr;
 	allocptr += sizeof(XLogCtlData) * XLOGslots;
+
+	gsn = (GSN *) allocptr;
+	allocptr += sizeof(GSN);
 
 	/*
 	 * Since XLogCtlData contains XLogRecPtr fields, its sizeof should be a
@@ -4905,6 +4914,7 @@ BootStrapXLOG(void)
 	checkPoint.nextXidEpoch = 0;
 	checkPoint.nextXid = FirstNormalTransactionId;
 	checkPoint.nextOid = FirstBootstrapObjectId;
+	checkPoint.nextGSN = 1;
 	checkPoint.nextMulti = FirstMultiXactId;
 	checkPoint.nextMultiOffset = 0;
 	checkPoint.oldestXid = FirstNormalTransactionId;
@@ -6502,6 +6512,9 @@ StartupXLOG(void)
 		XLogCtl->unloggedLSN = ControlFile->unloggedLSN;
 	else
 		XLogCtl->unloggedLSN = 1;
+
+	/* Initialize GSN. */
+	*gsn = checkPoint.nextGSN;
 
 	/*
 	 * We must replay WAL entries using the same TimeLineID they were created

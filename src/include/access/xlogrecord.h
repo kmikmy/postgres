@@ -18,6 +18,11 @@
 #include "storage/relfilenode.h"
 
 /*
+ * GSN is a monotonically increasing number.
+ */
+typedef uint64 GSN;
+
+/*
  * The overall layout of an XLOG record is:
  *		Fixed-size header (XLogRecord struct)
  *		XLogRecordBlockHeader struct
@@ -41,6 +46,8 @@
 typedef struct XLogRecord
 {
 	uint32		xl_tot_len;		/* total len of entire record */
+	/* GSN is unique number monotonically increasing. */
+	GSN			gsn;			/* global sequence number */
 	TransactionId xl_xid;		/* xact id */
 	XLogRecPtr	xl_prev;		/* ptr to previous record in log */
 	uint8		xl_info;		/* flag bits, see below */
