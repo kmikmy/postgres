@@ -51,7 +51,7 @@ typedef struct XLogPageReadPrivate
 static int SimpleXLogPageRead(XLogReaderState *xlogreader,
 				   XLogRecPtr targetPagePtr,
 				   int reqLen, XLogRecPtr targetRecPtr, char *readBuf,
-				   TimeLineID *pageTLI);
+				   TimeLineID *pageTLI, XLogSlotNo slotno);
 
 /*
  * Read WAL from the datadir/pg_xlog, starting from 'startpoint' on timeline
@@ -69,7 +69,7 @@ extractPageMap(const char *datadir, XLogRecPtr startpoint, TimeLineID tli,
 
 	private.datadir = datadir;
 	private.tli = tli;
-	xlogreader = XLogReaderAllocate(&SimpleXLogPageRead, &private);
+	xlogreader = XLogReaderAllocate(&SimpleXLogPageRead, &private, 0);
 	if (xlogreader == NULL)
 		pg_fatal("out of memory\n");
 
@@ -122,7 +122,7 @@ readOneRecord(const char *datadir, XLogRecPtr ptr, TimeLineID tli)
 
 	private.datadir = datadir;
 	private.tli = tli;
-	xlogreader = XLogReaderAllocate(&SimpleXLogPageRead, &private);
+	xlogreader = XLogReaderAllocate(&SimpleXLogPageRead, &private, 0);
 	if (xlogreader == NULL)
 		pg_fatal("out of memory\n");
 
@@ -174,7 +174,7 @@ findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, TimeLineID tli,
 
 	private.datadir = datadir;
 	private.tli = tli;
-	xlogreader = XLogReaderAllocate(&SimpleXLogPageRead, &private);
+	xlogreader = XLogReaderAllocate(&SimpleXLogPageRead, &private, 0);
 	if (xlogreader == NULL)
 		pg_fatal("out of memory\n");
 
@@ -232,7 +232,7 @@ findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, TimeLineID tli,
 static int
 SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
 				   int reqLen, XLogRecPtr targetRecPtr, char *readBuf,
-				   TimeLineID *pageTLI)
+				   TimeLineID *pageTLI, XLogSlotNo slotno)
 {
 	XLogPageReadPrivate *private = (XLogPageReadPrivate *) xlogreader->private_data;
 	uint32		targetPageOff;

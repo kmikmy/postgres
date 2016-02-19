@@ -62,7 +62,7 @@ report_invalid_record(XLogReaderState *state, const char *fmt,...)
  * Returns NULL if the xlogreader couldn't be allocated.
  */
 XLogReaderState *
-XLogReaderAllocate(XLogPageReadCB pagereadfunc, void *private_data)
+XLogReaderAllocate(XLogPageReadCB pagereadfunc, void *private_data, XLogSlotNo slotno)
 {
 	XLogReaderState *state;
 
@@ -73,6 +73,7 @@ XLogReaderAllocate(XLogPageReadCB pagereadfunc, void *private_data)
 		return NULL;
 
 	state->max_block_id = -1;
+	state->slotno = slotno;
 
 	/*
 	 * Permanently allocate readBuf.  We do it this way, rather than just
@@ -523,7 +524,7 @@ ReadPageInternal(XLogReaderState *state, XLogRecPtr pageptr, int reqLen)
 
 		readLen = state->read_page(state, targetSegmentPtr, XLOG_BLCKSZ,
 								   state->currRecPtr,
-								   state->readBuf, &state->readPageTLI);
+								   state->readBuf, &state->readPageTLI, state->slotno);
 		if (readLen < 0)
 			goto err;
 
@@ -542,7 +543,7 @@ ReadPageInternal(XLogReaderState *state, XLogRecPtr pageptr, int reqLen)
 	 */
 	readLen = state->read_page(state, pageptr, Max(reqLen, SizeOfXLogShortPHD),
 							   state->currRecPtr,
-							   state->readBuf, &state->readPageTLI);
+							   state->readBuf, &state->readPageTLI, state->slotno);
 	if (readLen < 0)
 		goto err;
 
@@ -561,7 +562,7 @@ ReadPageInternal(XLogReaderState *state, XLogRecPtr pageptr, int reqLen)
 	{
 		readLen = state->read_page(state, pageptr, XLogPageHeaderSize(hdr),
 								   state->currRecPtr,
-								   state->readBuf, &state->readPageTLI);
+								   state->readBuf, &state->readPageTLI, state->slotno);
 		if (readLen < 0)
 			goto err;
 	}

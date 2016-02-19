@@ -750,7 +750,7 @@ StartReplication(StartReplicationCmd *cmd)
  */
 static int
 logical_read_xlog_page(XLogReaderState *state, XLogRecPtr targetPagePtr, int reqLen,
-				XLogRecPtr targetRecPtr, char *cur_page, TimeLineID *pageTLI)
+					   XLogRecPtr targetRecPtr, char *cur_page, TimeLineID *pageTLI, XLogSlotNo slotno)
 {
 	XLogRecPtr	flushptr;
 	int			count;

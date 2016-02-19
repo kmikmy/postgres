@@ -824,7 +824,7 @@ static int XLogFileRead(XLogSlotNo slotno, XLogSegNo segno, int emode, TimeLineI
 static int	XLogFileReadAnyTLI(XLogSlotNo slotno, XLogSegNo segno, int emode, int source);
 static int XLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
 			 int reqLen, XLogRecPtr targetRecPtr, char *readBuf,
-			 TimeLineID *readTLI);
+			 TimeLineID *readTLI, XLogSlotNo slotno);
 static bool WaitForWALToBecomeAvailable(XLogSlotNo slotno, XLogRecPtr RecPtr, bool randAccess,
 							bool fetching_ckpt, XLogRecPtr tliRecPtr);
 static int	emode_for_corrupt_record(int emode, XLogRecPtr RecPtr);
@@ -1108,7 +1108,7 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 			appendBinaryStringInfo(&recordBuf, rdata->data, rdata->len);
 
 		if (!debug_reader)
-			debug_reader = XLogReaderAllocate(NULL, NULL);
+			debug_reader = XLogReaderAllocate(NULL, NULL, 0);
 
 		if (!debug_reader)
 		{
@@ -6187,7 +6187,7 @@ StartupXLOG(void)
 
 	/* Set up XLOG reader facility */
 	MemSet(&private, 0, sizeof(XLogPageReadPrivate));
-	xlogreader = XLogReaderAllocate(&XLogPageRead, &private);
+	xlogreader = XLogReaderAllocate(&XLogPageRead, &private, 0);
 	if (!xlogreader)
 		ereport(ERROR,
 				(errcode(ERRCODE_OUT_OF_MEMORY),
@@ -11132,7 +11132,7 @@ CancelBackup(void)
  */
 static int
 XLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr, int reqLen,
-			 XLogRecPtr targetRecPtr, char *readBuf, TimeLineID *readTLI)
+			 XLogRecPtr targetRecPtr, char *readBuf, TimeLineID *readTLI, XLogSlotNo slotno)
 {
 	XLogPageReadPrivate *private =
 	(XLogPageReadPrivate *) xlogreader->private_data;

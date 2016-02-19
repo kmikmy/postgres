@@ -227,7 +227,7 @@ check_permissions(void)
  */
 int
 logical_read_local_xlog_page(XLogReaderState *state, XLogRecPtr targetPagePtr,
-	int reqLen, XLogRecPtr targetRecPtr, char *cur_page, TimeLineID *pageTLI)
+							 int reqLen, XLogRecPtr targetRecPtr, char *cur_page, TimeLineID *pageTLI, XLogSlotNo slotno)
 {
 	XLogRecPtr	flushptr,
 				loc;

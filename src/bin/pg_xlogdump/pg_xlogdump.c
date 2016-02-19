@@ -223,7 +223,7 @@ fuzzy_open_file(const char *directory, const char *fname)
  * the passed buffer.
  */
 static void
-XLogDumpXLogRead(const char *directory, TimeLineID timeline_id,
+XLogDumpXLogRead(const char *directory, TimeLineID timeline_id, XLogSlotNo slotno,
 				 XLogRecPtr startptr, char *buf, Size count)
 {
 	char	   *p;
@@ -256,8 +256,7 @@ XLogDumpXLogRead(const char *directory, TimeLineID timeline_id,
 
 			XLByteToSeg(recptr, sendSegNo);
 
-			/* The slot number 0 is tentative value. */
-			XLogFileName(fname, timeline_id, 0, sendSegNo);
+			XLogFileName(fname, timeline_id, slotno, sendSegNo);
 
 			sendFile = fuzzy_open_file(directory, fname);
 
@@ -275,8 +274,7 @@ XLogDumpXLogRead(const char *directory, TimeLineID timeline_id,
 				int			err = errno;
 				char		fname[MAXPGPATH];
 
-				/* The slot number 0 is tentative value. */
-				XLogFileName(fname, timeline_id, 0, sendSegNo);
+				XLogFileName(fname, timeline_id, slotno, sendSegNo);
 
 				fatal_error("could not seek in log segment %s to offset %u: %s",
 							fname, startoff, strerror(err));
@@ -296,8 +294,7 @@ XLogDumpXLogRead(const char *directory, TimeLineID timeline_id,
 			int			err = errno;
 			char		fname[MAXPGPATH];
 
-			/* The slot number 0 is tentative value. */
-			XLogFileName(fname, timeline_id, 0, sendSegNo);
+			XLogFileName(fname, timeline_id, slotno, sendSegNo);
 
 			fatal_error("could not read from log segment %s, offset %d, length %d: %s",
 						fname, sendOff, segbytes, strerror(err));
@@ -317,7 +314,7 @@ XLogDumpXLogRead(const char *directory, TimeLineID timeline_id,
  */
 static int
 XLogDumpReadPage(XLogReaderState *state, XLogRecPtr targetPagePtr, int reqLen,
-				 XLogRecPtr targetPtr, char *readBuff, TimeLineID *curFileTLI)
+				 XLogRecPtr targetPtr, char *readBuff, TimeLineID *curFileTLI, XLogSlotNo slotno)
 {
 	XLogDumpPrivate *private = state->private_data;
 	int			count = XLOG_BLCKSZ;
@@ -335,7 +332,7 @@ XLogDumpReadPage(XLogReaderState *state, XLogRecPtr targetPagePtr, int reqLen,
 		}
 	}
 
-	XLogDumpXLogRead(private->inpath, private->timeline, targetPagePtr,
+	XLogDumpXLogRead(private->inpath, private->timeline, slotno, targetPagePtr,
 					 readBuff, count);
 
 	return count;
@@ -960,7 +957,7 @@ main(int argc, char **argv)
 	/* done with argument parsing, do the actual work */
 
 	/* we have everything we need, start reading */
-	xlogreader_state = XLogReaderAllocate(XLogDumpReadPage, &private);
+	xlogreader_state = XLogReaderAllocate(XLogDumpReadPage, &private, 0);
 	if (!xlogreader_state)
 		fatal_error("out of memory");
 

@@ -35,7 +35,8 @@ typedef int (*XLogPageReadCB) (XLogReaderState *xlogreader,
 										   int reqLen,
 										   XLogRecPtr targetRecPtr,
 										   char *readBuf,
-										   TimeLineID *pageTLI);
+										   TimeLineID *pageTLI,
+										   XLogSlotNo slotno);
 
 typedef struct
 {
@@ -168,7 +169,7 @@ struct XLogReaderState
 
 /* Get a new XLogReader */
 extern XLogReaderState *XLogReaderAllocate(XLogPageReadCB pagereadfunc,
-				   void *private_data);
+										   void *private_data, XLogSlotNo slotno);
 
 /* Free an XLogReader */
 extern void XLogReaderFree(XLogReaderState *state);
