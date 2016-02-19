@@ -257,6 +257,7 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 		 */
 		char		pathbuf[MAXPGPATH];
 		XLogSegNo	segno;
+		XLogSlotNo	slotno;
 		XLogSegNo	startsegno;
 		XLogSegNo	endsegno;
 		struct stat statbuf;
@@ -282,9 +283,11 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 		 * including them.
 		 */
 		XLByteToSeg(startptr, startsegno);
-		XLogFileName(firstoff, ThisTimeLineID, startsegno);
+		/* The slot number 0 is tentative value. */
+		XLogFileName(firstoff, ThisTimeLineID, 0, startsegno);
 		XLByteToPrevSeg(endptr, endsegno);
-		XLogFileName(lastoff, ThisTimeLineID, endsegno);
+		/* The slot number 0 is tentative value. */
+		XLogFileName(lastoff, ThisTimeLineID, 0, endsegno);
 
 		dir = AllocateDir("pg_xlog");
 		if (!dir)
@@ -311,7 +314,8 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 		 * Before we go any further, check that none of the WAL segments we
 		 * need were removed.
 		 */
-		CheckXLogRemoved(startsegno, ThisTimeLineID);
+		/* The slot number 0 is tentative value. */
+		CheckXLogRemoved(0, startsegno, ThisTimeLineID);
 
 		/*
 		 * Put the WAL filenames into an array, and sort. We send the files in
@@ -339,12 +343,13 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 		 * Sanity check: the first and last segment should cover startptr and
 		 * endptr, with no gaps in between.
 		 */
-		XLogFromFileName(walFiles[0], &tli, &segno);
+		/* The slot number 0 is tentative value. */
+		XLogFromFileName(walFiles[0], &tli, &slotno, &segno);
 		if (segno != startsegno)
 		{
 			char		startfname[MAXFNAMELEN];
 
-			XLogFileName(startfname, ThisTimeLineID, startsegno);
+			XLogFileName(startfname, ThisTimeLineID, slotno, startsegno);
 			ereport(ERROR,
 					(errmsg("could not find WAL file \"%s\"", startfname)));
 		}
@@ -353,12 +358,13 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 			XLogSegNo	currsegno = segno;
 			XLogSegNo	nextsegno = segno + 1;
 
-			XLogFromFileName(walFiles[i], &tli, &segno);
+			/* The slot number 0 is tentative value. */
+			XLogFromFileName(walFiles[i], &tli, &slotno, &segno);
 			if (!(nextsegno == segno || currsegno == segno))
 			{
 				char		nextfname[MAXFNAMELEN];
 
-				XLogFileName(nextfname, ThisTimeLineID, nextsegno);
+				XLogFileName(nextfname, ThisTimeLineID, slotno, nextsegno);
 				ereport(ERROR,
 					  (errmsg("could not find WAL file \"%s\"", nextfname)));
 			}
@@ -367,7 +373,8 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 		{
 			char		endfname[MAXFNAMELEN];
 
-			XLogFileName(endfname, ThisTimeLineID, endsegno);
+			/* The slot number 0 is tentative value. */
+			XLogFileName(endfname, ThisTimeLineID, 0, endsegno);
 			ereport(ERROR,
 					(errmsg("could not find WAL file \"%s\"", endfname)));
 		}
@@ -381,7 +388,8 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 			pgoff_t		len = 0;
 
 			snprintf(pathbuf, MAXPGPATH, XLOGDIR "/%s", walFiles[i]);
-			XLogFromFileName(walFiles[i], &tli, &segno);
+			/* The slot number 0 is tentative value. */
+			XLogFromFileName(walFiles[i], &tli, &slotno, &segno);
 
 			fp = AllocateFile(pathbuf, "rb");
 			if (fp == NULL)
@@ -391,7 +399,8 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 				 * removed by a checkpoint, so check for that to get a better
 				 * error message.
 				 */
-				CheckXLogRemoved(segno, tli);
+				/* The slot number 0 is tentative value. */
+				CheckXLogRemoved(0, segno, tli);
 
 				ereport(ERROR,
 						(errcode_for_file_access(),
@@ -405,7 +414,8 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 								pathbuf)));
 			if (statbuf.st_size != XLogSegSize)
 			{
-				CheckXLogRemoved(segno, tli);
+				/* The slot number 0 is tentative value. */
+				CheckXLogRemoved(segno, 0, tli);
 				ereport(ERROR,
 						(errcode_for_file_access(),
 					errmsg("unexpected WAL file size \"%s\"", walFiles[i])));
@@ -416,7 +426,8 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 
 			while ((cnt = fread(buf, 1, Min(sizeof(buf), XLogSegSize - len), fp)) > 0)
 			{
-				CheckXLogRemoved(segno, tli);
+				/* The slot number 0 is tentative value. */
+				CheckXLogRemoved(segno, 0, tli);
 				/* Send the chunk as a CopyData message */
 				if (pq_putmessage('d', buf, cnt))
 					ereport(ERROR,
@@ -431,7 +442,8 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 
 			if (len != XLogSegSize)
 			{
-				CheckXLogRemoved(segno, tli);
+				/* The slot number 0 is tentative value. */
+				CheckXLogRemoved(0, segno, tli);
 				ereport(ERROR,
 						(errcode_for_file_access(),
 					errmsg("unexpected WAL file size \"%s\"", walFiles[i])));

@@ -256,7 +256,8 @@ XLogDumpXLogRead(const char *directory, TimeLineID timeline_id,
 
 			XLByteToSeg(recptr, sendSegNo);
 
-			XLogFileName(fname, timeline_id, sendSegNo);
+			/* The slot number 0 is tentative value. */
+			XLogFileName(fname, timeline_id, 0, sendSegNo);
 
 			sendFile = fuzzy_open_file(directory, fname);
 
@@ -274,7 +275,8 @@ XLogDumpXLogRead(const char *directory, TimeLineID timeline_id,
 				int			err = errno;
 				char		fname[MAXPGPATH];
 
-				XLogFileName(fname, timeline_id, sendSegNo);
+				/* The slot number 0 is tentative value. */
+				XLogFileName(fname, timeline_id, 0, sendSegNo);
 
 				fatal_error("could not seek in log segment %s to offset %u: %s",
 							fname, startoff, strerror(err));
@@ -294,7 +296,8 @@ XLogDumpXLogRead(const char *directory, TimeLineID timeline_id,
 			int			err = errno;
 			char		fname[MAXPGPATH];
 
-			XLogFileName(fname, timeline_id, sendSegNo);
+			/* The slot number 0 is tentative value. */
+			XLogFileName(fname, timeline_id, 0, sendSegNo);
 
 			fatal_error("could not read from log segment %s, offset %d, length %d: %s",
 						fname, sendOff, segbytes, strerror(err));
@@ -868,6 +871,7 @@ main(int argc, char **argv)
 		char	   *fname = NULL;
 		int			fd;
 		XLogSegNo	segno;
+		XLogSlotNo	slotno;
 
 		split_path(argv[optind], &directory, &fname);
 
@@ -886,7 +890,7 @@ main(int argc, char **argv)
 		close(fd);
 
 		/* parse position from file */
-		XLogFromFileName(fname, &private.timeline, &segno);
+		XLogFromFileName(fname, &private.timeline, &slotno, &segno);
 
 		if (XLogRecPtrIsInvalid(private.startptr))
 			XLogSegNoOffsetToRecPtr(segno, 0, private.startptr);
@@ -919,7 +923,7 @@ main(int argc, char **argv)
 			close(fd);
 
 			/* parse position from file */
-			XLogFromFileName(fname, &private.timeline, &endsegno);
+			XLogFromFileName(fname, &private.timeline, &slotno, &endsegno);
 
 			if (endsegno < segno)
 				fatal_error("ENDSEG %s is before STARTSEG %s",

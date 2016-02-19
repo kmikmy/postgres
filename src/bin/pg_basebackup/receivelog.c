@@ -110,7 +110,8 @@ open_walfile(XLogRecPtr startpoint, uint32 timeline, char *basedir,
 	XLogSegNo	segno;
 
 	XLByteToSeg(startpoint, segno);
-	XLogFileName(current_walfile_name, timeline, segno);
+	/* The slot number 0 is tentative value. */
+	XLogFileName(current_walfile_name, timeline, 0, segno);
 
 	snprintf(fn, sizeof(fn), "%s/%s%s", basedir, current_walfile_name,
 			 partial_suffix ? partial_suffix : "");

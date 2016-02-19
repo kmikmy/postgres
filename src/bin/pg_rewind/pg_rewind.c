@@ -481,7 +481,8 @@ createBackupLabel(XLogRecPtr startpoint, TimeLineID starttli, XLogRecPtr checkpo
 	int			len;
 
 	XLByteToSeg(startpoint, startsegno);
-	XLogFileName(xlogfilename, starttli, startsegno);
+	/* The slot number 0 is tentative value. */
+	XLogFileName(xlogfilename, starttli, 0, startsegno);
 
 	/*
 	 * Construct backup label file

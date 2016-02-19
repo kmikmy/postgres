@@ -533,13 +533,15 @@ WalReceiverMain(void)
 				ereport(PANIC,
 						(errcode_for_file_access(),
 						 errmsg("could not close log segment %s: %m",
-								XLogFileNameP(recvFileTLI, recvSegNo))));
+						/* The slot number 0 is tentative value. */
+								XLogFileNameP(recvFileTLI, 0, recvSegNo))));
 
 			/*
 			 * Create .done file forcibly to prevent the streamed segment from
 			 * being archived later.
 			 */
-			XLogFileName(xlogfname, recvFileTLI, recvSegNo);
+			/* The slot number 0 is tentative value. */
+			XLogFileName(xlogfname, recvFileTLI, 0, recvSegNo);
 			if (XLogArchiveMode != ARCHIVE_MODE_ALWAYS)
 				XLogArchiveForceDone(xlogfname);
 			else
@@ -893,13 +895,15 @@ XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr)
 					ereport(PANIC,
 							(errcode_for_file_access(),
 							 errmsg("could not close log segment %s: %m",
-									XLogFileNameP(recvFileTLI, recvSegNo))));
+									/* The slot number 0 is tentative value. */
+									XLogFileNameP(recvFileTLI, 0, recvSegNo))));
 
 				/*
 				 * Create .done file forcibly to prevent the streamed segment
 				 * from being archived later.
 				 */
-				XLogFileName(xlogfname, recvFileTLI, recvSegNo);
+				/* The slot number 0 is tentative value. */
+				XLogFileName(xlogfname, recvFileTLI, 0, recvSegNo);
 				if (XLogArchiveMode != ARCHIVE_MODE_ALWAYS)
 					XLogArchiveForceDone(xlogfname);
 				else
@@ -910,7 +914,8 @@ XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr)
 			/* Create/use new log file */
 			XLByteToSeg(recptr, recvSegNo);
 			use_existent = true;
-			recvFile = XLogFileInit(recvSegNo, &use_existent, true);
+			/* The slot number 0 is tentative value. */
+			recvFile = XLogFileInit(0, recvSegNo, &use_existent, true);
 			recvFileTLI = ThisTimeLineID;
 			recvOff = 0;
 		}
@@ -930,7 +935,8 @@ XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr)
 				ereport(PANIC,
 						(errcode_for_file_access(),
 				  errmsg("could not seek in log segment %s to offset %u: %m",
-						 XLogFileNameP(recvFileTLI, recvSegNo),
+						/* The slot number 0 is tentative value. */
+						 XLogFileNameP(recvFileTLI, 0, recvSegNo),
 						 startoff)));
 			recvOff = startoff;
 		}
@@ -948,7 +954,8 @@ XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr)
 					(errcode_for_file_access(),
 					 errmsg("could not write to log segment %s "
 							"at offset %u, length %lu: %m",
-							XLogFileNameP(recvFileTLI, recvSegNo),
+							/* The slot number 0 is tentative value. */
+							XLogFileNameP(recvFileTLI, 0, recvSegNo),
 							recvOff, (unsigned long) segbytes)));
 		}
 
@@ -977,7 +984,8 @@ XLogWalRcvFlush(bool dying)
 		/* use volatile pointer to prevent code rearrangement */
 		volatile WalRcvData *walrcv = WalRcv;
 
-		issue_xlog_fsync(recvFile, recvSegNo);
+		/* The slot number 0 is tentative value. */
+		issue_xlog_fsync(recvFile, 0, recvSegNo);
 
 		LogstreamResult.Flush = LogstreamResult.Write;
 

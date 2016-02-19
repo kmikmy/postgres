@@ -220,7 +220,8 @@ SetWALFileNameForCleanup(void)
 			 * Use just the prefix of the filename, ignore everything after
 			 * first period
 			 */
-			XLogFileNameById(exclusiveCleanupFileName, tli, log, seg);
+			/* The slot number 0 is tentative value. */
+			XLogFileNameById(exclusiveCleanupFileName, tli, log, 0, seg);
 		}
 	}
 	else if (IsBackupHistoryFileName(restartWALFileName))
@@ -240,7 +241,8 @@ SetWALFileNameForCleanup(void)
 			 * Use just the prefix of the filename, ignore everything after
 			 * first period
 			 */
-			XLogFileNameById(exclusiveCleanupFileName, tli, log, seg);
+			/* The slot number 0 is tentative value. */
+			XLogFileNameById(exclusiveCleanupFileName, tli, log, 0, seg);
 		}
 	}
 

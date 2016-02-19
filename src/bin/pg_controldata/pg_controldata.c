@@ -211,7 +211,8 @@ main(int argc, char *argv[])
 	 * start point.
 	 */
 	XLByteToSeg(ControlFile.checkPointCopy.redo, segno);
-	XLogFileName(xlogfilename, ControlFile.checkPointCopy.ThisTimeLineID, segno);
+	/* The slot number 0 is tentative value. */
+	XLogFileName(xlogfilename, ControlFile.checkPointCopy.ThisTimeLineID, 0, segno);
 
 	/*
 	 * Format system_identifier separately to keep platform-dependent format

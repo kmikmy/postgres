@@ -137,7 +137,8 @@ XLogRead(char *buf, TimeLineID tli, XLogRecPtr startptr, Size count)
 
 			XLByteToSeg(recptr, sendSegNo);
 
-			XLogFilePath(path, tli, sendSegNo);
+			/* The slot number 0 is tentative value. */
+			XLogFilePath(path, tli, 0, sendSegNo);
 
 			sendFile = BasicOpenFile(path, O_RDONLY | PG_BINARY, 0);
 
@@ -164,7 +165,8 @@ XLogRead(char *buf, TimeLineID tli, XLogRecPtr startptr, Size count)
 			{
 				char		path[MAXPGPATH];
 
-				XLogFilePath(path, tli, sendSegNo);
+				/* The slot number 0 is tentative value. */
+				XLogFilePath(path, tli, 0, sendSegNo);
 
 				ereport(ERROR,
 						(errcode_for_file_access(),
@@ -185,7 +187,8 @@ XLogRead(char *buf, TimeLineID tli, XLogRecPtr startptr, Size count)
 		{
 			char		path[MAXPGPATH];
 
-			XLogFilePath(path, tli, sendSegNo);
+			/* The slot number 0 is tentative value. */
+			XLogFilePath(path, tli, 0, sendSegNo);
 
 			ereport(ERROR,
 					(errcode_for_file_access(),

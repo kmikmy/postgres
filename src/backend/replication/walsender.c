@@ -2079,7 +2079,8 @@ retry:
 					curFileTimeLine = sendTimeLineNextTLI;
 			}
 
-			XLogFilePath(path, curFileTimeLine, sendSegNo);
+			/* The slot number 0 is tentative value. */
+			XLogFilePath(path, curFileTimeLine, 0, sendSegNo);
 
 			sendFile = BasicOpenFile(path, O_RDONLY | PG_BINARY, 0);
 			if (sendFile < 0)
@@ -2093,7 +2094,8 @@ retry:
 					ereport(ERROR,
 							(errcode_for_file_access(),
 							 errmsg("requested WAL segment %s has already been removed",
-								XLogFileNameP(curFileTimeLine, sendSegNo))));
+									/* The slot number 0 is tentative value. */
+									XLogFileNameP(curFileTimeLine, 0, sendSegNo))));
 				else
 					ereport(ERROR,
 							(errcode_for_file_access(),
@@ -2110,7 +2112,8 @@ retry:
 				ereport(ERROR,
 						(errcode_for_file_access(),
 				  errmsg("could not seek in log segment %s to offset %u: %m",
-						 XLogFileNameP(curFileTimeLine, sendSegNo),
+						/* The slot number 0 is tentative value. */
+						 XLogFileNameP(curFileTimeLine, 0, sendSegNo),
 						 startoff)));
 			sendOff = startoff;
 		}
@@ -2127,7 +2130,8 @@ retry:
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not read from log segment %s, offset %u, length %lu: %m",
-							XLogFileNameP(curFileTimeLine, sendSegNo),
+							/* The slot number 0 is tentative value. */
+							XLogFileNameP(curFileTimeLine, 0, sendSegNo),
 							sendOff, (unsigned long) segbytes)));
 		}
 
@@ -2147,7 +2151,8 @@ retry:
 	 * already have been overwritten with new WAL records.
 	 */
 	XLByteToSeg(startptr, segno);
-	CheckXLogRemoved(segno, ThisTimeLineID);
+	/* The slot number 0 is tentative value. */
+	CheckXLogRemoved(0, segno, ThisTimeLineID);
 
 	/*
 	 * During recovery, the currently-open WAL file might be replaced with the

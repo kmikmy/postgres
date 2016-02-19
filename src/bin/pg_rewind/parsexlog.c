@@ -257,7 +257,8 @@ SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
 	{
 		char		xlogfname[MAXFNAMELEN];
 
-		XLogFileName(xlogfname, private->tli, xlogreadsegno);
+		/* The slot number 0 is tentative value. */
+		XLogFileName(xlogfname, private->tli, 0, xlogreadsegno);
 
 		snprintf(xlogfpath, MAXPGPATH, "%s/" XLOGDIR "/%s", private->datadir, xlogfname);
 

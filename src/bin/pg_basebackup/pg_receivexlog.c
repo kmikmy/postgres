@@ -186,6 +186,7 @@ FindStreamingStart(uint32 *tli)
 	{
 		uint32		tli;
 		XLogSegNo	segno;
+		XLogSlotNo	slotno;
 		bool		ispartial;
 
 		/*
@@ -201,7 +202,7 @@ FindStreamingStart(uint32 *tli)
 		/*
 		 * Looks like an xlog file. Parse its position.
 		 */
-		XLogFromFileName(dirent->d_name, &tli, &segno);
+		XLogFromFileName(dirent->d_name, &tli, &slotno, &segno);
 
 		/*
 		 * Check that the segment has the right size, if it's supposed to be

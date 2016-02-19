@@ -70,6 +70,7 @@ static Oid	set_oid = 0;
 static MultiXactId set_mxid = 0;
 static MultiXactOffset set_mxoff = (MultiXactOffset) -1;
 static uint32 minXlogTli = 0;
+static XLogSlotNo slotno = 0;
 static XLogSegNo minXlogSegNo = 0;
 
 static bool ReadControlFile(void);
@@ -265,7 +266,7 @@ main(int argc, char *argv[])
 					fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
 					exit(1);
 				}
-				XLogFromFileName(optarg, &minXlogTli, &minXlogSegNo);
+				XLogFromFileName(optarg, &minXlogTli, &slotno, &minXlogSegNo);
 				break;
 
 			default:
@@ -710,7 +711,8 @@ PrintNewControlValues()
 	/* This will be always printed in order to keep format same. */
 	printf(_("\n\nValues to be changed:\n\n"));
 
-	XLogFileName(fname, ControlFile.checkPointCopy.ThisTimeLineID, newXlogSegNo);
+	/* The slot number 0 is tentative value. */
+	XLogFileName(fname, ControlFile.checkPointCopy.ThisTimeLineID, 0, newXlogSegNo);
 	printf(_("First log segment after reset:        %s\n"), fname);
 
 	if (set_mxid != 0)
@@ -1101,7 +1103,9 @@ WriteEmptyXLOG(void)
 
 	recptr += SizeOfXLogRecord;
 	*(recptr++) = XLR_BLOCK_ID_DATA_SHORT;
-	*(recptr++) = sizeof(CheckPoint);
+	*(uint32 *)(recptr) = sizeof(CheckPoint);
+	recptr += sizeof(uint32);
+
 	memcpy(recptr, &ControlFile.checkPointCopy,
 		   sizeof(CheckPoint));
 
@@ -1112,7 +1116,8 @@ WriteEmptyXLOG(void)
 	record->xl_crc = crc;
 
 	/* Write the first page */
-	XLogFilePath(path, ControlFile.checkPointCopy.ThisTimeLineID, newXlogSegNo);
+	/* The slot number 0 is tentative value. */
+	XLogFilePath(path, ControlFile.checkPointCopy.ThisTimeLineID, 0, newXlogSegNo);
 
 	unlink(path);
 

@@ -296,7 +296,9 @@ pg_xlogfile_name_offset(PG_FUNCTION_ARGS)
 	 * xlogfilename
 	 */
 	XLByteToPrevSeg(locationpoint, xlogsegno);
-	XLogFileName(xlogfilename, ThisTimeLineID, xlogsegno);
+
+	/* The slot number 0 is tentative value. */
+	XLogFileName(xlogfilename, ThisTimeLineID, 0, xlogsegno);
 
 	values[0] = CStringGetTextDatum(xlogfilename);
 	isnull[0] = false;
@@ -337,7 +339,9 @@ pg_xlogfile_name(PG_FUNCTION_ARGS)
 		 errhint("pg_xlogfile_name() cannot be executed during recovery.")));
 
 	XLByteToPrevSeg(locationpoint, xlogsegno);
-	XLogFileName(xlogfilename, ThisTimeLineID, xlogsegno);
+
+	/* The slot number 0 is tentative value. */
+	XLogFileName(xlogfilename, ThisTimeLineID, 0, xlogsegno);
 
 	PG_RETURN_TEXT_P(cstring_to_text(xlogfilename));
 }

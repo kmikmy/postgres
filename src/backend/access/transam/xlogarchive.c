@@ -136,12 +136,14 @@ RestoreArchivedFile(char *path, const char *xlogfname,
 	{
 		GetOldestRestartPoint(&restartRedoPtr, &restartTli);
 		XLByteToSeg(restartRedoPtr, restartSegNo);
-		XLogFileName(lastRestartPointFname, restartTli, restartSegNo);
+		/* The slot number 0 is tentative value. */
+		XLogFileName(lastRestartPointFname, restartTli, 0, restartSegNo);
 		/* we shouldn't need anything earlier than last restart point */
 		Assert(strcmp(lastRestartPointFname, xlogfname) <= 0);
 	}
 	else
-		XLogFileName(lastRestartPointFname, 0, 0L);
+		/* The slot number 0 is tentative value. */
+		XLogFileName(lastRestartPointFname, 0, 0, 0L);
 
 	/*
 	 * construct the command to be executed
@@ -349,7 +351,8 @@ ExecuteRecoveryCommand(char *command, char *commandName, bool failOnSignal)
 	 */
 	GetOldestRestartPoint(&restartRedoPtr, &restartTli);
 	XLByteToSeg(restartRedoPtr, restartSegNo);
-	XLogFileName(lastRestartPointFname, restartTli, restartSegNo);
+	/* The slot number 0 is tentative value. */
+	XLogFileName(lastRestartPointFname, restartTli, 0, restartSegNo);
 
 	/*
 	 * construct the command to be executed
@@ -552,7 +555,8 @@ XLogArchiveNotifySeg(XLogSegNo segno)
 {
 	char		xlog[MAXFNAMELEN];
 
-	XLogFileName(xlog, ThisTimeLineID, segno);
+	/* The slot number 0 is tentative value. */
+	XLogFileName(xlog, ThisTimeLineID, 0, segno);
 	XLogArchiveNotify(xlog);
 }
 
