@@ -655,7 +655,7 @@ static XLogCtlData *XLogCtl = NULL;
 static XLogCtlData *XLogCtls;
 
 /* each gsn is assigned to each log. */
-static GSN *gsn = NULL;
+static GSN *global_gsn = NULL;
 
 /* a private copy of XLogCtl->Insert.WALInsertLocks, for convenience */
 static WALInsertLockPadded *WALInsertLocks = NULL;
@@ -863,7 +863,7 @@ static void CopyXLogRecordToWAL(int write_len, bool isLogSwitch,
 					XLogRecData *rdata,
 					XLogRecPtr StartPos, XLogRecPtr EndPos);
 static void ReserveXLogInsertLocation(int size, XLogRecPtr *StartPos,
-						  XLogRecPtr *EndPos, XLogRecPtr *PrevPtr);
+									  XLogRecPtr *EndPos, XLogRecPtr *PrevPtr, GSN *gsn);
 static bool ReserveXLogSwitch(XLogRecPtr *StartPos, XLogRecPtr *EndPos,
 				  XLogRecPtr *PrevPtr);
 static XLogRecPtr WaitXLogInsertionsToFinish(XLogRecPtr upto);
@@ -1001,7 +1001,7 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 	else
 	{
 		ReserveXLogInsertLocation(rechdr->xl_tot_len, &StartPos, &EndPos,
-								  &rechdr->xl_prev);
+								  &rechdr->xl_prev, &rechdr->gsn);
 		inserted = true;
 	}
 
@@ -1158,7 +1158,7 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
  */
 static void
 ReserveXLogInsertLocation(int size, XLogRecPtr *StartPos, XLogRecPtr *EndPos,
-						  XLogRecPtr *PrevPtr)
+						  XLogRecPtr *PrevPtr, GSN *gsn)
 {
 	XLogCtlInsert *Insert = &XLogCtl->Insert;
 	uint64		startbytepos;
@@ -1187,6 +1187,7 @@ ReserveXLogInsertLocation(int size, XLogRecPtr *StartPos, XLogRecPtr *EndPos,
 	prevbytepos = Insert->PrevBytePos;
 	Insert->CurrBytePos = endbytepos;
 	Insert->PrevBytePos = startbytepos;
+	__sync_fetch_and_add(gsn, 1);
 
 	SpinLockRelease(&Insert->insertpos_lck);
 
@@ -4740,7 +4741,7 @@ XLOGShmemInit(void)
 	XLogCtls = (XLogCtlData *) allocptr;
 	allocptr += sizeof(XLogCtlData) * XLOGslots;
 
-	gsn = (GSN *) allocptr;
+	global_gsn = (GSN *) allocptr;
 	allocptr += sizeof(GSN);
 
 	/*
@@ -6514,7 +6515,7 @@ StartupXLOG(void)
 		XLogCtl->unloggedLSN = 1;
 
 	/* Initialize GSN. */
-	*gsn = checkPoint.nextGSN;
+	*global_gsn = checkPoint.nextGSN;
 
 	/*
 	 * We must replay WAL entries using the same TimeLineID they were created
