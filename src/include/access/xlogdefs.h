@@ -31,7 +31,7 @@ typedef uint64 XLogRecPtr;
 /*
  * XLogSlotNo - physical and logical log slot number.
  */
-typedef uint32 XLogSlotNo;
+typedef int XLogSlotNo;
 
 
 /*

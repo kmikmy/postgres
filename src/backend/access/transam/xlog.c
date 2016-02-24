@@ -2245,6 +2245,9 @@ XLogWrite(XLogwrtRqst WriteRqst, bool flexible)
 		/* Make sure we have the current logfile open */
 		if (openLogFile < 0)
 		{
+			if(openLogSlotNo < 0){
+				openLogSlotNo = getpid() % XLOGslots;
+			}
 			XLByteToPrevSeg(LogwrtResult.Write, openLogSegNo);
 			openLogFile = XLogFileOpen(openLogSlotNo, openLogSegNo);
 			openLogOff = 0;
@@ -2396,6 +2399,9 @@ XLogWrite(XLogwrtRqst WriteRqst, bool flexible)
 				XLogFileClose();
 			if (openLogFile < 0)
 			{
+				if(openLogSlotNo < 0){
+					openLogSlotNo = getpid() % XLOGslots;
+				}
 				XLByteToPrevSeg(LogwrtResult.Write, openLogSegNo);
 				openLogFile = XLogFileOpen(openLogSlotNo, openLogSegNo);
 				openLogOff = 0;
@@ -2771,6 +2777,8 @@ XLogBackgroundFlush(void)
 	XLogRecPtr	WriteRqstPtr;
 	bool		flexible = true;
 	bool		wrote_something = false;
+
+	XLogCtl = &XLogCtls[0];
 
 	/* XLOG doesn't need flushing during recovery */
 	if (RecoveryInProgress())
