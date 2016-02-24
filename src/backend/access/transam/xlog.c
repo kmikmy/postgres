@@ -905,7 +905,7 @@ static void WALInsertLockUpdateInsertingAt(XLogRecPtr insertingAt);
 XLogRecPtr
 XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 {
-	XLogCtlInsert *Insert = &XLogCtl->Insert;
+	XLogCtlInsert *Insert;
 	pg_crc32c	rdata_crc;
 	bool		inserted;
 	XLogRecord *rechdr = (XLogRecord *) rdata->data;
@@ -917,8 +917,10 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 	if(openLogSlotNo == -1)
 	{
 		openLogSlotNo = getpid() % XLOGslots;
-		XLogCtl = &XLogCtls[openLogSlotNo];
 	}
+	XLogCtl = &XLogCtls[openLogSlotNo];
+
+	Insert = &XLogCtl->Insert;
 
 	/* we assume that all of the record header is in the first chunk */
 	Assert(rdata->len >= SizeOfXLogRecord);
