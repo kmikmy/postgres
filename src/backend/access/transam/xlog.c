@@ -917,6 +917,7 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 	if(openLogSlotNo == -1)
 	{
 		openLogSlotNo = getpid() % XLOGslots;
+		XLogCtl = &XLogCtls[openLogSlotNo];
 	}
 
 	/* we assume that all of the record header is in the first chunk */
