@@ -322,9 +322,11 @@ static TimeLineID curFileTLI;
  * stored here.  The parallel leader advances its own copy, when necessary,
  * in WaitForParallelWorkersToFinish.
  */
-static XLogRecPtr ProcLastRecPtr = InvalidXLogRecPtr;
+static XLogRecPtr ProcLastRecPtrs[MAX_XLOG_SLOTS] = {InvalidXLogRecPtr};
 
 XLogRecPtr	XactLastRecEnd = InvalidXLogRecPtr;
+XLogRecPtr	XactLastRecEnds[MAX_XLOG_SLOTS] = {InvalidXLogRecPtr};
+
 XLogRecPtr	XactLastCommitEnd = InvalidXLogRecPtr;
 
 /*
@@ -1136,8 +1138,8 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 	/*
 	 * Update our global variables
 	 */
-	ProcLastRecPtr = StartPos;
-	XactLastRecEnd = EndPos;
+	ProcLastRecPtrs[openLogSlotNo] = StartPos;
+	XactLastRecEnds[openLogSlotNo] = EndPos;
 
 	return EndPos;
 }
@@ -1643,7 +1645,7 @@ GetXLogBuffer(XLogRecPtr ptr)
 	 * Fast path for the common case that we need to access again the same
 	 * page as last time.
 	 */
-	if (ptr / XLOG_BLCKSZ == cachedPage)
+	if (ptr / XLOG_BLCKSZ == cachedPage && cachedPage != 0)
 	{
 		Assert(((XLogPageHeader) cachedPos)->xlp_magic == XLOG_PAGE_MAGIC);
 		Assert(((XLogPageHeader) cachedPos)->xlp_pageaddr == ptr - (ptr % XLOG_BLCKSZ));
@@ -6057,6 +6059,8 @@ StartupXLOG(void)
 	struct stat st;
 	uint32		i;
 
+	openLogSlotNo = 0;
+	XLogCtl = &XLogCtls[0];
 
 	/*
 	 * Read control file and check XLOG status looks valid.
@@ -7694,7 +7698,7 @@ RecoveryInProgress(void)
 		 * use volatile pointer to make sure we make a fresh read of the
 		 * shared variable.
 		 */
-		volatile XLogCtlData *xlogctl = XLogCtl;
+		volatile XLogCtlData *xlogctl = &XLogCtls[0];
 
 		LocalRecoveryInProgress = xlogctl->SharedRecoveryInProgress;
 
@@ -8306,6 +8310,8 @@ CreateCheckPoint(int flags)
 	int			nvxids;
 	uint32		i;
 
+	XLogCtl = &XLogCtls[0];
+
 	/*
 	 * An end-of-recovery checkpoint is really a shutdown checkpoint, just
 	 * issued at a different time.
@@ -8612,7 +8618,7 @@ CreateCheckPoint(int flags)
 	 * We now have ProcLastRecPtr = start of actual checkpoint record, recptr
 	 * = end of actual checkpoint record.
 	 */
-	if (shutdown && checkPoint.redo != ProcLastRecPtr)
+	if (shutdown && checkPoint.redo != ProcLastRecPtrs[0])
 		ereport(PANIC,
 				(errmsg("concurrent transaction log activity while database system is shutting down")));
 
@@ -8632,7 +8638,7 @@ CreateCheckPoint(int flags)
 	if (shutdown)
 		ControlFile->state = DB_SHUTDOWNED;
 	ControlFile->prevCheckPoint = ControlFile->checkPoint;
-	ControlFile->checkPoint = ProcLastRecPtr;
+	ControlFile->checkPoint = ProcLastRecPtrs[0];
 	ControlFile->checkPointCopy = checkPoint;
 	ControlFile->time = (pg_time_t) time(NULL);
 	/* crash recovery should always recover to the end of WAL */
