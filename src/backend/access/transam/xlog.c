@@ -1004,7 +1004,7 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 	else
 	{
 		ReserveXLogInsertLocation(rechdr->xl_tot_len, &StartPos, &EndPos,
-								  &rechdr->xl_prev, &rechdr->gsn);
+								  &rechdr->xl_prev, &rechdr->xl_gsn);
 		inserted = true;
 	}
 

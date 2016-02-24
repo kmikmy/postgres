@@ -47,7 +47,7 @@ typedef struct XLogRecord
 {
 	uint32		xl_tot_len;		/* total len of entire record */
 	/* GSN is unique number monotonically increasing. */
-	GSN			gsn;			/* global sequence number */
+	GSN			xl_gsn;			/* global sequence number */
 	TransactionId xl_xid;		/* xact id */
 	XLogRecPtr	xl_prev;		/* ptr to previous record in log */
 	uint8		xl_info;		/* flag bits, see below */

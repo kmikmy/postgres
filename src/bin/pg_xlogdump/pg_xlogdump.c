@@ -409,11 +409,12 @@ XLogDumpDisplayRecord(XLogDumpConfig *config, XLogReaderState *record)
 	if (id == NULL)
 		id = psprintf("UNKNOWN (%x)", info & ~XLR_INFO_MASK);
 
-	printf("rmgr: %-11s len (rec/tot): %6u/%6u, tx: %10u, lsn: %X/%08X, prev %X/%08X, ",
+	printf("rmgr: %-11s len (rec/tot): %6u/%6u, tx: %10u, lsn: %X/%08X, GSN: %08X, prev %X/%08X, ",
 		   desc->rm_name,
 		   XLogRecGetDataLen(record), XLogRecGetTotalLen(record),
 		   XLogRecGetXid(record),
 		   (uint32) (record->ReadRecPtr >> 32), (uint32) record->ReadRecPtr,
+		   XLogRecGetGSN(record),
 		   (uint32) (xl_prev >> 32), (uint32) xl_prev);
 	printf("desc: %s ", id);
 
