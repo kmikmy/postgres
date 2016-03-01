@@ -524,6 +524,7 @@ typedef struct XLogCtlInsert
 typedef struct XLogCtlData
 {
 	XLogCtlInsert Insert;
+	XLogSlotNo slotno;
 
 	/* Protected by info_lck: */
 	XLogwrtRqst LogwrtRqst;
@@ -4854,6 +4855,7 @@ XLOGShmemInit(void)
 		XLogCtls[i].SharedRecoveryInProgress = true;
 		XLogCtls[i].SharedHotStandbyActive = false;
 		XLogCtls[i].WalWriterSleeping = false;
+		XLogCtls[i].slotno = i;
 
 		SpinLockInit(&XLogCtls[i].Insert.insertpos_lck);
 		SpinLockInit(&XLogCtls[i].info_lck);
