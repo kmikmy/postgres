@@ -11,6 +11,7 @@
 #ifndef XLOG_H
 #define XLOG_H
 
+#include "access/xlog_internal.h"
 #include "access/rmgr.h"
 #include "access/xlogdefs.h"
 #include "access/xloginsert.h"
@@ -30,6 +31,8 @@
 extern int	sync_method;
 
 extern PGDLLIMPORT TimeLineID ThisTimeLineID;	/* current TLI */
+
+extern XLogSlotNo openLogSlotNo; /* selected slot number  */
 
 /*
  * Prior to 8.4, all activity during recovery was carried out by the startup
@@ -87,6 +90,8 @@ typedef enum
 } RecoveryTargetType;
 
 extern XLogRecPtr XactLastRecEnd;
+extern XLogRecPtr	XactLastRecEnds[MAX_XLOG_SLOTS];
+
 extern PGDLLIMPORT XLogRecPtr XactLastCommitEnd;
 
 extern bool reachedConsistency;

@@ -1143,7 +1143,7 @@ RecordTransactionCommit(void)
 	if (XLogStandbyInfoActive())
 		nmsgs = xactGetCommittedInvalidationMessages(&invalMessages,
 													 &RelcacheInitFileInval);
-	wrote_xlog = (XactLastRecEnd != 0);
+	wrote_xlog = (XactLastRecEnds[openLogSlotNo] != 0);
 
 	/*
 	 * If we haven't been assigned an XID yet, we neither can, nor do we want
@@ -1220,7 +1220,7 @@ RecordTransactionCommit(void)
 		if (replorigin)
 			/* Move LSNs forward for this replication origin */
 			replorigin_session_advance(replorigin_session_origin_lsn,
-									   XactLastRecEnd);
+									   XactLastRecEnds[openLogSlotNo]);
 
 		/*
 		 * Record commit timestamp.  The value comes from plain commit
@@ -1269,7 +1269,7 @@ RecordTransactionCommit(void)
 		 synchronous_commit > SYNCHRONOUS_COMMIT_OFF) ||
 		forceSyncCommit || nrels > 0)
 	{
-		XLogFlush(XactLastRecEnd);
+		XLogFlush(XactLastRecEnds[openLogSlotNo]);
 
 		/*
 		 * Now we may update the CLOG, if we wrote a COMMIT record above
@@ -1290,7 +1290,7 @@ RecordTransactionCommit(void)
 		 * Report the latest async commit LSN, so that the WAL writer knows to
 		 * flush this commit.
 		 */
-		XLogSetAsyncXactLSN(XactLastRecEnd);
+		XLogSetAsyncXactLSN(XactLastRecEnds[openLogSlotNo]);
 
 		/*
 		 * We must not immediately update the CLOG, since we didn't flush the
@@ -1298,7 +1298,7 @@ RecordTransactionCommit(void)
 		 * flushed before the CLOG may be updated.
 		 */
 		if (markXidCommitted)
-			TransactionIdAsyncCommitTree(xid, nchildren, children, XactLastRecEnd);
+			TransactionIdAsyncCommitTree(xid, nchildren, children, XactLastRecEnds[openLogSlotNo]);
 	}
 
 	/*
@@ -1324,13 +1324,13 @@ RecordTransactionCommit(void)
 	 * in the procarray and continue to hold locks.
 	 */
 	if (wrote_xlog && markXidCommitted)
-		SyncRepWaitForLSN(XactLastRecEnd);
+		SyncRepWaitForLSN(XactLastRecEnds[openLogSlotNo]);
 
 	/* remember end of last commit record */
-	XactLastCommitEnd = XactLastRecEnd;
+	XactLastCommitEnd = XactLastRecEnds[openLogSlotNo];
 
 	/* Reset XactLastRecEnd until the next transaction writes something */
-	XactLastRecEnd = 0;
+	XactLastRecEnds[openLogSlotNo] = 0;
 cleanup:
 	/* Clean up local data */
 	if (rels)
@@ -1529,7 +1529,7 @@ RecordTransactionAbort(bool isSubXact)
 	{
 		/* Reset XactLastRecEnd until the next transaction writes something */
 		if (!isSubXact)
-			XactLastRecEnd = 0;
+			XactLastRecEnds[openLogSlotNo] = 0;
 		return InvalidTransactionId;
 	}
 
@@ -1579,7 +1579,7 @@ RecordTransactionAbort(bool isSubXact)
 	 * problems occur at that point.
 	 */
 	if (!isSubXact)
-		XLogSetAsyncXactLSN(XactLastRecEnd);
+		XLogSetAsyncXactLSN(XactLastRecEnds[openLogSlotNo]);
 
 	/*
 	 * Mark the transaction aborted in clog.  This is not absolutely necessary
@@ -1607,7 +1607,7 @@ RecordTransactionAbort(bool isSubXact)
 
 	/* Reset XactLastRecEnd until the next transaction writes something */
 	if (!isSubXact)
-		XactLastRecEnd = 0;
+		XactLastRecEnds[openLogSlotNo] = 0;
 
 	/* And clean up local data */
 	if (rels)
@@ -2036,7 +2036,7 @@ CommitTransaction(void)
 		 * Make sure the master will know about any WAL we wrote before it
 		 * commits.
 		 */
-		ParallelWorkerReportLastRecEnd(XactLastRecEnd);
+		ParallelWorkerReportLastRecEnd(XactLastRecEnds[openLogSlotNo]);
 	}
 
 	TRACE_POSTGRESQL_TRANSACTION_COMMIT(MyProc->lxid);
@@ -2319,7 +2319,7 @@ PrepareTransaction(void)
 	 */
 
 	/* Reset XactLastRecEnd until the next transaction writes something */
-	XactLastRecEnd = 0;
+	XactLastRecEnds[openLogSlotNo] = 0;
 
 	/*
 	 * Let others know about no transaction in progress by me.  This has to be
@@ -2537,7 +2537,7 @@ AbortTransaction(void)
 		 * this case, we nudge WAL-writer ourselves in this case.  See related
 		 * comments in RecordTransactionAbort for why this matters.
 		 */
-		XLogSetAsyncXactLSN(XactLastRecEnd);
+		XLogSetAsyncXactLSN(XactLastRecEnds[openLogSlotNo]);
 	}
 
 	TRACE_POSTGRESQL_TRANSACTION_ABORT(MyProc->lxid);

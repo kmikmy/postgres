@@ -724,7 +724,7 @@ static const char *xlogSourceNames[] = {"any", "archive", "pg_xlog", "stream"};
  * used to write the XLOG, and so will normally refer to the active segment.
  */
 static int	openLogFile = -1;
-static XLogSlotNo openLogSlotNo = -1;
+XLogSlotNo openLogSlotNo = -1;
 static XLogSegNo openLogSegNo = 0;
 static uint32 openLogOff = 0;
 
