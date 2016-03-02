@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <syslog.h>
 
 #include "access/clog.h"
 #include "access/commit_ts.h"
@@ -920,6 +921,10 @@ XLogInsertRecord(XLogRecData *rdata, XLogRecPtr fpw_lsn)
 		openLogSlotNo = getpid() % XLOGslots;
 	}
 	XLogCtl = &XLogCtls[openLogSlotNo];
+
+	openlog("xlog.c", LOG_CONS | LOG_PID, LOG_USER);
+	syslog(LOG_NOTICE, "XLogInsertRecord(): XLogCtls[%d] : pid(%d)", XLogCtl->slotno, getpid() );
+	closelog();
 
 	Insert = &XLogCtl->Insert;
 
@@ -2181,6 +2186,10 @@ XLogWrite(XLogwrtRqst WriteRqst, bool flexible)
 	int			npages;
 	int			startidx;
 	uint32		startoffset;
+
+	openlog("xlog.c", LOG_CONS | LOG_PID, LOG_USER);
+	syslog(LOG_NOTICE, "XLogWrite(): XLogCtls[%d]", XLogCtl->slotno);
+	closelog();
 
 	/* We should always be inside a critical section here */
 	Assert(CritSectionCount > 0);
