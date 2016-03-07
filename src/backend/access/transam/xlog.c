@@ -7282,6 +7282,13 @@ StartupXLOG(void)
 	XLogCtl->ThisTimeLineID = ThisTimeLineID;
 	XLogCtl->PrevTimeLineID = PrevTimeLineID;
 
+	for(i = 0; i < XLOGslots; i++)
+	{
+		XLogCtls[i]->ThisTimeLineID = ThisTimeLineID;
+		XLogCtls[i]->PrevTimeLineID = PrevTimeLineID;
+	}
+
+
 	/*
 	 * We are now done reading the old WAL.  Turn off archive fetching if it
 	 * was active, and make a writable copy of the last WAL segment. (Note
