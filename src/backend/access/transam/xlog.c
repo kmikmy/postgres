@@ -8323,7 +8323,7 @@ CreateCheckPoint(int flags)
 	bool		shutdown;
 	CheckPoint	checkPoint;
 	XLogRecPtr	recptr;
-	XLogCtlInsert *Insert = &XLogCtl->Insert;
+	XLogCtlInsert *Insert;
 	uint32		freespace;
 	XLogRecPtr	PriorRedoPtrs[MAX_XLOG_SLOTS];
 	XLogRecPtr	curInsert;
@@ -8332,7 +8332,9 @@ CreateCheckPoint(int flags)
 	int			nvxids;
 	uint32		i;
 
+	openLogSlotNo = 0;
 	XLogCtl = &XLogCtls[0];
+	Insert = &XLogCtl->Insert;
 
 	/*
 	 * An end-of-recovery checkpoint is really a shutdown checkpoint, just
@@ -8746,6 +8748,7 @@ CreateCheckPoint(int flags)
 									 CheckpointStats.ckpt_segs_removed,
 									 CheckpointStats.ckpt_segs_recycled);
 
+	openLogSlotNo = -1;
 	LWLockRelease(CheckpointLock);
 }
 
