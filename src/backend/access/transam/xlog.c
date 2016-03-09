@@ -1198,7 +1198,7 @@ ReserveXLogInsertLocation(int size, XLogRecPtr *StartPos, XLogRecPtr *EndPos,
 	prevbytepos = Insert->PrevBytePos;
 	Insert->CurrBytePos = endbytepos;
 	Insert->PrevBytePos = startbytepos;
-	__sync_fetch_and_add(gsn, 1);
+	*gsn = __sync_fetch_and_add(global_gsn, 1);
 
 	SpinLockRelease(&Insert->insertpos_lck);
 
@@ -8547,6 +8547,7 @@ CreateCheckPoint(int flags)
 	checkPoint.nextOid = ShmemVariableCache->nextOid;
 	if (!shutdown)
 		checkPoint.nextOid += ShmemVariableCache->oidCount;
+	checkPoint.nextGSN = *global_gsn;
 	LWLockRelease(OidGenLock);
 
 	MultiXactGetCheckptMulti(shutdown,
