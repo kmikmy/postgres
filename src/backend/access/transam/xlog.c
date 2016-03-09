@@ -4778,11 +4778,13 @@ XLOGShmemInit(void)
 	 * needed here.
 	 */
 	XLogCtl->xlblocks = (XLogRecPtr *) allocptr;
+	XLogCtl->slotno = -1;
 	memset(XLogCtl->xlblocks, 0, sizeof(XLogRecPtr) * XLOGbuffers);
 	allocptr += sizeof(XLogRecPtr) * XLOGbuffers;
 
 	for(i = 0; i < XLOGslots; i++)
 	{
+		XLogCtls[i].slotno = i;
 		XLogCtls[i].xlblocks = (XLogRecPtr *) allocptr;
 		memset(XLogCtls[i].xlblocks, 0, sizeof(XLogRecPtr) * XLOGbuffers);
 		allocptr += sizeof(XLogRecPtr) * XLOGbuffers;
