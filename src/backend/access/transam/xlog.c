@@ -6844,6 +6844,19 @@ StartupXLOG(void)
 		XLogCtl->recoveryPause = false;
 		SpinLockRelease(&XLogCtl->info_lck);
 
+		for(i = 1; i < XLOGslots; i++)
+		{
+			SpinLockAcquire(&XLogCtls[i].info_lck);
+			XLogCtls[i].replayEndRecPtr = checkPoint.redoPtrs[i];
+			XLogCtls[i].replayEndTLI = ThisTimeLineID;
+			XLogCtls[i].lastReplayedEndRecPtr = XLogCtls[i].replayEndRecPtr;
+			XLogCtls[i].lastReplayedTLI = XLogCtls[i].replayEndTLI;
+			XLogCtls[i].recoveryLastXTime = 0;
+			XLogCtls[i].currentChunkStartTime = 0;
+			XLogCtls[i].recoveryPause = false;
+			SpinLockRelease(&XLogCtls[i].info_lck);
+		}
+
 		/* Also ensure XLogReceiptTime has a sane value */
 		XLogReceiptTime = GetCurrentTimestamp();
 
@@ -7304,11 +7317,10 @@ StartupXLOG(void)
 	/* Save the selected TimeLineID in shared memory, too */
 	XLogCtl->ThisTimeLineID = ThisTimeLineID;
 	XLogCtl->PrevTimeLineID = PrevTimeLineID;
-
-	for(i = 0; i < XLOGslots; i++)
+	for(i = 1; i < XLOGslots; i++)
 	{
-		XLogCtls[i]->ThisTimeLineID = ThisTimeLineID;
-		XLogCtls[i]->PrevTimeLineID = PrevTimeLineID;
+		XLogCtls[i].ThisTimeLineID = ThisTimeLineID;
+		XLogCtls[i].PrevTimeLineID = PrevTimeLineID;
 	}
 
 
@@ -8385,7 +8397,9 @@ CreateCheckPoint(int flags)
 	uint32		freespace;
 	XLogRecPtr	PriorRedoPtrs[MAX_XLOG_SLOTS];
 	XLogRecPtr	curInsert;
+	XLogRecPtr	curInserts[MAX_XLOG_SLOTS];
 	XLogRecPtr	prevPtr;
+	XLogRecPtr	prevPtrs[MAX_XLOG_SLOTS];
 	VirtualTransactionId *vxids;
 	int			nvxids;
 	uint32		i;
@@ -8475,6 +8489,12 @@ CreateCheckPoint(int flags)
 	 * determine the checkpoint REDO pointer.
 	 */
 	WALInsertLockAcquireExclusive();
+	for(i = 0; i < MAX_XLOG_SLOTS; i++)
+	{
+	  curInserts[i] = XLogCtls[i].Insert.CurrBytePos;
+	  prevPtrs[i] = XLogBytePosToRecPtr(XLogCtls[i].Insert.PrevBytePos);
+	}
+
 	curInsert = XLogBytePosToRecPtr(Insert->CurrBytePos);
 	prevPtr = XLogBytePosToRecPtr(Insert->PrevBytePos);
 
@@ -8532,6 +8552,19 @@ CreateCheckPoint(int flags)
 	 * the buffer flush work.  Those XLOG records are logically after the
 	 * checkpoint, even though physically before it.  Got that?
 	 */
+	for(i = 0; i < MAX_XLOG_SLOTS; i++)
+	{
+	  freespace = INSERT_FREESPACE(curInserts[i]);
+	  if (freespace == 0)
+	  {
+	    if (curInserts[i] % XLogSegSize == 0)
+	      curInserts[i] += SizeOfXLogLongPHD;
+	    else
+	      curInserts[i] += SizeOfXLogShortPHD;
+	  }
+	  checkPoint.redoPtrs[i] = curInserts[i];
+	}
+
 	freespace = INSERT_FREESPACE(curInsert);
 	if (freespace == 0)
 	{
