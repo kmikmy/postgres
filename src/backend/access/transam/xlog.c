@@ -3339,6 +3339,17 @@ XLogFileOpen(XLogSlotNo slotno, XLogSegNo segno)
 	char		path[MAXPGPATH];
 	int			fd;
 
+	if(slotno == -1){
+		openLogSlotNo = getpid() % XLOGslots;
+		slotno = openLogSlotNo;
+	}
+	if(segno < 1){
+		ereport(PANIC,
+				(errcode_for_file_access(),
+			errmsg("invalid segment number: %u", segno)));
+
+	}
+
 	XLogFilePath(path, ThisTimeLineID, slotno, segno);
 
 	fd = BasicOpenFile(path, O_RDWR | PG_BINARY | get_sync_bit(sync_method),
