@@ -6567,6 +6567,11 @@ StartupXLOG(void)
 	lastFullPageWrites = checkPoint.fullPageWrites;
 
 	RedoRecPtr = XLogCtl->RedoRecPtr = XLogCtl->Insert.RedoRecPtr = checkPoint.redo;
+	for(i = 0; i < XLOGslots; i++)
+	{
+		XLogCtls[i].RedoRecPtr = XLogCtls[i].Insert.RedoRecPtr = checkPoint.redoPtrs[i];
+	}
+
 	doPageWrites = lastFullPageWrites;
 
 	if (RecPtr < checkPoint.redo)
@@ -7303,9 +7308,18 @@ StartupXLOG(void)
 	 * buffer cache using the block containing the last record from the
 	 * previous incarnation.
 	 */
+	for(i = 1; i < XLOGslots; i++)
+	{
+		Insert = &XLogCtls[i].Insert;
+		Insert->PrevBytePos = XLogRecPtrToBytePos(XLogCtls[i].RedoRecPtr);
+		/*  CurrBytePost should be RedoRecPtrs[i] + record->tot_len */
+		Insert->CurrBytePos = XLogRecPtrToBytePos(XLogCtls[i].RedoRecPtr);
+
+	}
 	Insert = &XLogCtl->Insert;
 	Insert->PrevBytePos = XLogRecPtrToBytePos(LastRec);
 	Insert->CurrBytePos = XLogRecPtrToBytePos(EndOfLog);
+
 
 	/*
 	 * Tricky point here: readBuf contains the *last* block that the LastRec
@@ -7343,6 +7357,17 @@ StartupXLOG(void)
 		XLogCtl->InitializedUpTo = EndOfLog;
 	}
 
+
+	for(i = 1; i < XLOGslots; i++)
+	{
+	  //		LogwrtResult.Write = LogwrtResult.Flush = XLogCtls[i].RedoRecPtr;
+		LogwrtResult.Write = LogwrtResult.Flush = EndOfLog;
+
+		XLogCtls[i].LogwrtResult = LogwrtResult;
+
+		XLogCtls[i].LogwrtRqst.Write = XLogCtls[i].RedoRecPtr;
+		XLogCtls[i].LogwrtRqst.Flush = XLogCtls[i].RedoRecPtr;
+	}
 	LogwrtResult.Write = LogwrtResult.Flush = EndOfLog;
 
 	XLogCtl->LogwrtResult = LogwrtResult;
