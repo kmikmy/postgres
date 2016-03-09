@@ -256,7 +256,7 @@ extern void XLOGShmemInit(void);
 extern void BootStrapXLOG(void);
 extern void StartupXLOG(void);
 extern void ShutdownXLOG(int code, Datum arg);
-extern void InitXLOGAccess(void);
+extern void InitXLOGAccess(XLogSlotNo slotno);
 extern void CreateCheckPoint(int flags);
 extern bool CreateRestartPoint(int flags);
 extern void XLogPutNextOid(Oid nextOid);

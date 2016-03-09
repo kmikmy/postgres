@@ -7777,7 +7777,7 @@ RecoveryInProgress(void)
 			 * weak memory ordering).
 			 */
 			pg_memory_barrier();
-			InitXLOGAccess();
+			InitXLOGAccess(0);
 		}
 
 		/*
@@ -7876,7 +7876,7 @@ LocalSetXLogInsertAllowed(void)
 	LocalXLogInsertAllowed = 1;
 
 	/* Initialize as RecoveryInProgress() would do when switching state */
-	InitXLOGAccess();
+	InitXLOGAccess(0);
 }
 
 /*
@@ -8009,9 +8009,17 @@ ReadCheckpointRecord(XLogReaderState *xlogreader, XLogRecPtr RecPtr,
  * unnecessary however, since the postmaster itself never touches XLOG anyway.
  */
 void
-InitXLOGAccess(void)
+InitXLOGAccess(XLogSlotNo slotno)
 {
-	XLogCtlInsert *Insert = &XLogCtl->Insert;
+	XLogCtlInsert *Insert;
+
+	if(slotno == -1)
+	{
+		ereport(LOG,
+				(errmsg("invalid log slot number")));
+	}
+	XLogCtl = &XLogCtls[slotno];
+	Insert = &XLogCtl->Insert;
 
 	/* ThisTimeLineID doesn't change so we need no lock to copy it */
 	ThisTimeLineID = XLogCtl->ThisTimeLineID;

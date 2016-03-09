@@ -430,7 +430,8 @@ AuxiliaryProcessMain(int argc, char *argv[])
 
 		case WalWriterProcess:
 			/* don't set signals, walwriter has its own agenda */
-			InitXLOGAccess();
+			openLogSlotNo = 0;
+			InitXLOGAccess(0);
 			WalWriterMain();
 			proc_exit(1);		/* should never return */
 
