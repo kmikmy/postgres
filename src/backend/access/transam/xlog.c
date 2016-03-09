@@ -773,6 +773,9 @@ static XLogSource XLogReceiptSource = 0;		/* XLOG_FROM_* code */
 /* State information for XLOG reading */
 static XLogRecPtr ReadRecPtr;	/* start of last record read */
 static XLogRecPtr EndRecPtr;	/* end+1 of last record read */
+static XLogRecPtr ReadRecPtrs[MAX_XLOG_SLOTS];	/* start of last record read for P_WAL*/
+static XLogRecPtr EndRecPtrs[MAX_XLOG_SLOTS];	/* end+1 of last record read for P_WAL*/
+
 
 static XLogRecPtr minRecoveryPoint;		/* local copy of
 										 * ControlFile->minRecoveryPoint */
@@ -3989,6 +3992,8 @@ ReadRecord(XLogReaderState *xlogreader, XLogRecPtr RecPtr, int emode,
 		record = XLogReadRecord(xlogreader, RecPtr, &errormsg);
 		ReadRecPtr = xlogreader->ReadRecPtr;
 		EndRecPtr = xlogreader->EndRecPtr;
+		ReadRecPtrs[XLogCtl->slotno] = xlogreader->ReadRecPtr;
+		EndRecPtrs[XLogCtl->slotno]  = xlogreader->EndRecPtr;
 		if (record == NULL)
 		{
 			if (readFile >= 0)
