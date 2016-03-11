@@ -8493,10 +8493,10 @@ CreateCheckPoint(int flags)
 	 * determine the checkpoint REDO pointer.
 	 */
 	WALInsertLockAcquireExclusive();
-	for(i = 0; i < MAX_XLOG_SLOTS; i++)
+	for(i = 0; i < XLOGslots; i++)
 	{
-	  curInserts[i] = XLogCtls[i].Insert.CurrBytePos;
-	  prevPtrs[i] = XLogBytePosToRecPtr(XLogCtls[i].Insert.PrevBytePos);
+		curInserts[i] = XLogBytePosToRecPtr(XLogCtls[i].Insert.CurrBytePos);
+		prevPtrs[i] = XLogBytePosToRecPtr(XLogCtls[i].Insert.PrevBytePos);
 	}
 
 	curInsert = XLogBytePosToRecPtr(Insert->CurrBytePos);
@@ -8556,7 +8556,7 @@ CreateCheckPoint(int flags)
 	 * the buffer flush work.  Those XLOG records are logically after the
 	 * checkpoint, even though physically before it.  Got that?
 	 */
-	for(i = 0; i < MAX_XLOG_SLOTS; i++)
+	for(i = 0; i < XLOGslots; i++)
 	{
 		freespace = INSERT_FREESPACE(curInserts[i]);
 		if (freespace == 0)
@@ -8565,7 +8565,7 @@ CreateCheckPoint(int flags)
 				curInserts[i] += SizeOfXLogLongPHD;
 			else
 				curInserts[i] += SizeOfXLogShortPHD;
-			}
+		}
 		checkPoint.redoPtrs[i] = curInserts[i];
 	}
 
@@ -8602,7 +8602,7 @@ CreateCheckPoint(int flags)
 	SpinLockAcquire(&XLogCtl->info_lck);
 	XLogCtl->RedoRecPtr = checkPoint.redo;
 	SpinLockRelease(&XLogCtl->info_lck);
-	for(i = 0; i < MAX_XLOG_SLOTS; i++)
+	for(i = 0; i < XLOGslots; i++)
 	{
 		SpinLockAcquire(&XLogCtls[i].info_lck);
 		XLogCtls[i].RedoRecPtr = checkPoint.redoPtrs[i];
@@ -8753,7 +8753,7 @@ CreateCheckPoint(int flags)
 	 * Remember the prior checkpoint's redo pointer, used later to determine
 	 * the point where the log can be truncated.
 	 */
-	for(i = 0; i < MAX_XLOG_SLOTS; i++)
+	for(i = 0; i < XLOGslots; i++)
 	{
 		PriorRedoPtrs[i] = ControlFile->checkPointCopy.redoPtrs[i];
 	}
@@ -8805,7 +8805,7 @@ CreateCheckPoint(int flags)
 	 * Delete old log files (those no longer needed even for previous
 	 * checkpoint or the standbys in XLOG streaming).
 	 */
-	for(i = 0; i < MAX_XLOG_SLOTS; i++)
+	for(i = 0; i < XLOGslots; i++)
 	{
 		if (PriorRedoPtrs[i] != InvalidXLogRecPtr)
 		{
@@ -8826,7 +8826,7 @@ CreateCheckPoint(int flags)
 	 * segments, since that may supply some of the needed files.)
 	 */
 	if (!shutdown){
-		for(i = 0; i < MAX_XLOG_SLOTS; i++)
+		for(i = 0; i < XLOGslots; i++)
 		{
 			PreallocXlogFiles(i, recptr);
 		}
