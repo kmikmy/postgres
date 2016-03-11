@@ -4951,6 +4951,10 @@ BootStrapXLOG(void)
 	 * used, so that we can use 0/0 to mean "before any valid WAL segment".
 	 */
 	checkPoint.redo = XLogSegSize + SizeOfXLogLongPHD;
+	for(i = 0; i < MAX_XLOG_SLOTS; i++)
+	{
+		checkPoint.redoPtrs[i] = XLogSegSize + SizeOfXLogLongPHD;;
+	}
 	checkPoint.ThisTimeLineID = ThisTimeLineID;
 	checkPoint.PrevTimeLineID = ThisTimeLineID;
 	checkPoint.fullPageWrites = fullPageWrites;
@@ -8554,15 +8558,15 @@ CreateCheckPoint(int flags)
 	 */
 	for(i = 0; i < MAX_XLOG_SLOTS; i++)
 	{
-	  freespace = INSERT_FREESPACE(curInserts[i]);
-	  if (freespace == 0)
-	  {
-	    if (curInserts[i] % XLogSegSize == 0)
-	      curInserts[i] += SizeOfXLogLongPHD;
-	    else
-	      curInserts[i] += SizeOfXLogShortPHD;
-	  }
-	  checkPoint.redoPtrs[i] = curInserts[i];
+		freespace = INSERT_FREESPACE(curInserts[i]);
+		if (freespace == 0)
+		{
+			if (curInserts[i] % XLogSegSize == 0)
+				curInserts[i] += SizeOfXLogLongPHD;
+			else
+				curInserts[i] += SizeOfXLogShortPHD;
+			}
+		checkPoint.redoPtrs[i] = curInserts[i];
 	}
 
 	freespace = INSERT_FREESPACE(curInsert);
@@ -8598,6 +8602,13 @@ CreateCheckPoint(int flags)
 	SpinLockAcquire(&XLogCtl->info_lck);
 	XLogCtl->RedoRecPtr = checkPoint.redo;
 	SpinLockRelease(&XLogCtl->info_lck);
+	for(i = 0; i < MAX_XLOG_SLOTS; i++)
+	{
+		SpinLockAcquire(&XLogCtls[i].info_lck);
+		XLogCtls[i].RedoRecPtr = checkPoint.redoPtrs[i];
+		SpinLockRelease(&XLogCtls[i].info_lck);
+	}
+
 
 	/*
 	 * If enabled, log checkpoint start.  We postpone this until now so as not
